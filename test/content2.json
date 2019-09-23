@@ -1,0 +1,262 @@
+{
+ "address": "13T79X7tG8Fi3EZCev3xU1wYTtFHHnqWGQ",
+ "address_index": 44134187,
+ "background-color": "white",
+ "background-color-dark": "#30363c",
+ "clone_root": "",
+ "cloneable": true,
+ "cloned_from": "19fZJhX7FGENeRRLB8ftgrziBJ5vsLtFog",
+ "default_page": "index.html",
+ "description": "Blogging platform Demo",
+ "files": {
+  "alloy-editor/all.css": {
+   "sha512": "99a06e56f954493324f4630d47319f3aa984409011da25568368ef288df7fca3",
+   "size": 63383
+  },
+  "alloy-editor/all.js": {
+   "sha512": "ae7b912b36dc1ef351accc19fe5b6b14014032b9196ee7baa31180a18720b298",
+   "size": 737537
+  },
+  "buildlog.txt": {
+   "sha512": "a8819b49ed46c066033d3d957088b210c034d09e8a5bacb91ce11ebd41018b5c",
+   "size": 27714
+  },
+  "css/all.css": {
+   "sha512": "06c787997afda037d71504a01c5dcb91760956f9cac458d2a0d5f3422de17c4b",
+   "size": 46858
+  },
+  "data-default/data.json": {
+   "sha512": "13cefc76c657c4ac91216d37ba1b9bfd9ab5ddeeff4500b98a9fe81fe8861e9c",
+   "size": 462
+  },
+  "data-default/settings.json": {
+   "sha512": "9d3cc69c27b16562ff55677e7caacb49f318f5584541981df3b432f096dd07ca",
+   "size": 22
+  },
+  "data-default/users/content-default.json": {
+   "sha512": "0603ce08f7abb92b3840ad0cf40e95ea0b3ed3511b31524d4d70e88adba83daa",
+   "size": 679
+  },
+  "data/data.json": {
+   "sha512": "3fa4eea8e994c85992686e81503a0420a3c78fdd84db09e46a4c366d55fbc09f",
+   "size": 36798
+  },
+  "data/img/post_4_sonata6maldere.jpg": {
+   "sha512": "0a2d7ce4eac3c6e8b8ee2d36bde6f1648c86fc09ce10ab1110bd6dd5b6606d97",
+   "size": 56389
+  },
+  "data/img/post_5_it__s_over_9000_.png": {
+   "sha512": "25e16ddfa79395c4a82d822e490b0044f28b6218e20208f07e9224d2b70eadb9",
+   "size": 59240
+  },
+  "data/settings.json": {
+   "sha512": "9d3cc69c27b16562ff55677e7caacb49f318f5584541981df3b432f096dd07ca",
+   "size": 22
+  },
+  "dbschema.json": {
+   "sha512": "94665155cbcf06dab9c760fa650a75db56549ee82ed12f3be2e3c9d978b75723",
+   "size": 3167
+  },
+  "fonts/roboto/Roboto-Light.ttf": {
+   "sha512": "c07cd18549a83e82f0d7aade010fae4c74ddc70780123cc311ee2f757ef4c9c5",
+   "size": 140276
+  },
+  "fonts/roboto/Roboto-LightItalic.ttf": {
+   "sha512": "9428fb345ea6bb1f4bf074c190c77d45f5b46fa4342833ca2e751c3cc6e53007",
+   "size": 145932
+  },
+  "fonts/roboto/Roboto-Medium.ttf": {
+   "sha512": "0a0120d13c729e1b8826b8265dcb47275f4dd1f210a20e708b7cf38cba7ec447",
+   "size": 137308
+  },
+  "fonts/roboto/Roboto-MediumItalic.ttf": {
+   "sha512": "1c897a0cbb8d8012d659261913fe9127c5a881c1d5f4ef3c7421207333e2964b",
+   "size": 147876
+  },
+  "fonts/tinos/Apache License.txt": {
+   "sha512": "fdae7ed259455ca9fa45939e7f25cbb4de29831cda16d9151de25a5f6e9d9be4",
+   "size": 11323
+  },
+  "fonts/tinos/Tinos-Bold.ttf": {
+   "sha512": "d4fa6d16cc26e46e4b8efd2c89ed1199b38ac5ddd4db5243db4feb4ced5d7f40",
+   "size": 452284
+  },
+  "fonts/tinos/Tinos-BoldItalic.ttf": {
+   "sha512": "ce4d3badd725c6345c52e4d6a65421b5d1930947528aec75e50ed961bc59d643",
+   "size": 457320
+  },
+  "fonts/tinos/Tinos-Italic.ttf": {
+   "sha512": "214199caf4806039c7bcf29339e6b0bec3e96e1d48da665ee8442d371166e43c",
+   "size": 456156
+  },
+  "fonts/tinos/Tinos-Regular.ttf": {
+   "sha512": "8443f781878612507f58d451114db82a2ab99fd746263e5ff0e1dc3076ef3058",
+   "size": 475996
+  },
+  "img/avatar-old.png": {
+   "sha512": "a656c470967e27c2b385182a361db8bab1696fe3b2d79c86394236d02ce42eb8",
+   "size": 87
+  },
+  "img/avatar.jpg": {
+   "sha512": "c0bbbb401ff3554adf49e1e4626a1dd6086153477002281eaa59736fe28bf2d9",
+   "size": 21925
+  },
+  "img/avatar.png": {
+   "sha512": "38143683c172ae1415d18046f952efb8d2ccf4e21587c068c650e0658e5c9143",
+   "size": 86429
+  },
+  "img/loading.gif": {
+   "sha512": "8a42b98962faea74618113166886be488c09dad10ca47fe97005edc5fb40cc00",
+   "size": 723
+  },
+  "index.html": {
+   "sha512": "d44ef36f43c679979c7aba4f5a2d476b616a21600f8cbb82c29651749d9d0b4e",
+   "size": 8093
+  },
+  "js/all.js": {
+   "sha512": "35cff4afa6bf3fe7df0e88b22768557a8210b958c45daab03b9c729d316fafdb",
+   "size": 384808
+  },
+  "languages/de.json": {
+   "sha512": "8fef5db6d592cc1d6baaf27489cdbaa2649c14ab5735fc18fd8c2506292b1289",
+   "size": 2437
+  },
+  "languages/es.json": {
+   "sha512": "9005bf63e41b2670af8eba0103badfe9ba24ae94b6cac64d00193cfbb2624d85",
+   "size": 871
+  },
+  "languages/fr.json": {
+   "sha512": "6e87d27a3ee084c8300642ac83133d9b967d8ba3997d7bb0dfbe104ee3e1b327",
+   "size": 1773
+  },
+  "languages/it.json": {
+   "sha512": "f5c15cf8f36984c29b38911946c18a0414bb2739fd95196bc42004d90979f43e",
+   "size": 804
+  },
+  "languages/nl.json": {
+   "sha512": "1844365e54a2a5b53fcff4f36ad2e870fe738ba033dbae77172de3126e72bcb7",
+   "size": 912
+  },
+  "languages/pl.json": {
+   "sha512": "f84ea772597afc947fb0e759318aaa3371a36efe542abdbd6b6411ea99468826",
+   "size": 864
+  },
+  "languages/pt-br": {
+   "sha512": "804a255da65cb8de0e425326bce69874aab03a6d58c05b95bf6c5102b337f9d1",
+   "size": 822
+  },
+  "languages/pt-br.json": {
+   "sha512": "804a255da65cb8de0e425326bce69874aab03a6d58c05b95bf6c5102b337f9d1",
+   "size": 822
+  },
+  "languages/ru.json": {
+   "sha512": "051213465bdbdb75f7ae331301c9dc6f5b820bf1d58abb24b5a7ae28272f42f3",
+   "size": 3104
+  },
+  "languages/zh.json": {
+   "sha512": "fdc18e8db95603481f107036f77ed0e851afa3259fb4f3476117ceb98462f752",
+   "size": 1963
+  },
+  "themes/Binchan/Follow.css": {
+   "sha512": "95176eaeb588305ecb1827c89270dffd0bd708ceee9176c6bf5be141572d1ea8",
+   "size": 116
+  },
+  "themes/Binchan/ZeroBlog.css": {
+   "sha512": "003210455ea98f4c0a937e0f8de25d076fad05fc8f38e967c7ce7c44ee3acf11",
+   "size": 387
+  },
+  "themes/Binchan/all.css": {
+   "sha512": "020c4c88da34c73bcb748ca1c89426cb27560af8d2c600baa6b8f1fe7d11a23b",
+   "size": 9935
+  },
+  "themes/Binchan/dark.css": {
+   "sha512": "a3a5993739b294065574446a3b61507cda48ecf473e1e627c236552c7c0c1474",
+   "size": 8466
+  },
+  "themes/Binchan/dark.scss": {
+   "sha512": "a802a07154acf1ee85569a1547b2c264cfc8f3504b8ee5b49ac9a54b2b1ceabf",
+   "size": 6272
+  },
+  "themes/LOR/ZeroBlog.css": {
+   "sha512": "b6001c566c3ae7413a23c05067d7f8554394285aaf5ad81bfa752e76d1e72bec",
+   "size": 4794
+  },
+  "themes/LOR/all.css": {
+   "sha512": "920a345924d6ba9c575bf0201062a5da7ab9ab22ffc3c2fd3425b16a4934da24",
+   "size": 6583
+  },
+  "themes/ZeroBlog/all.css": {
+   "sha512": "2c853a61b2b85713aa077da1ce0467d203f52304dd4ee388d0c91059f1e7b2d6",
+   "size": 3056
+  },
+  "themes/ZeroBlog/dark.css": {
+   "sha512": "2f7316e29dac89bb1a922160d2d77d03d74fe5365ea4418c9a3b16665642a62c",
+   "size": 2975
+  }
+ },
+ "files_optional": {
+  "data/music/2018_Summer/Compo.mp3": {
+   "sha512": "7e422f4a7f6aca63b5e44668a25703dd4b6b9417efc4b211991998f8e3637753",
+   "size": 1335297
+  },
+  "data/music/2019_Summer/Canzone 5 voix - consort cordes.mp3": {
+   "sha512": "9866ed1a3c87483d947a6555ac812c79910aeac856f63012ae958d2658b19089",
+   "size": 2517703
+  },
+  "data/music/2019_Summer/Canzone_a_5_voix-consort_cordes.mp3": {
+   "sha512": "9866ed1a3c87483d947a6555ac812c79910aeac856f63012ae958d2658b19089",
+   "size": 2517703
+  },
+  "data/music/2019_Summer/Corelli.mp3": {
+   "sha512": "17e970c95431c3f4607a2884095561a8a6fd3b90a73b90f1e662e3a88465bb6a",
+   "size": 3579319
+  },
+  "data/music/2019_Summer/Sonate P.Van Maldere.mp3": {
+   "piece_size": 1048576,
+   "piecemap": "data/music/2019_Summer/Sonate P.Van Maldere.mp3.piecemap.msgpack",
+   "sha512": "e3ae869bbd9f0081c7214e4d3f221a14661a9cc40a652222de151e70ba837954",
+   "size": 7989207
+  },
+  "data/music/2019_Summer/Sonate P.Van Maldere.mp3.piecemap.msgpack": {
+   "sha512": "0df601af623d7e016ecbc237205d67356af5b666c2fa7058cac84d0ba4da473a",
+   "size": 314
+  },
+  "data/music/2019_Summer/Sonate_P_Van_Maldere.mp3": {
+   "piece_size": 1048576,
+   "piecemap": "data/music/2019_Summer/Sonate_P_Van_Maldere.mp3.piecemap.msgpack",
+   "sha512": "e3ae869bbd9f0081c7214e4d3f221a14661a9cc40a652222de151e70ba837954",
+   "size": 7989207
+  },
+  "data/music/2019_Summer/Sonate_P_Van_Maldere.mp3.piecemap.msgpack": {
+   "sha512": "30e213b9f9dd908de4c6c0404ef2fa792c98d1de0a64bcea5ed28d76f43f42d8",
+   "size": 314
+  },
+  "data/music/Folk/Lapp-Lena Waltz-reverb.ogg": {
+   "sha512": "771932b77019399194cc24df98c83e987d1ab7685b7c6cca4c8dc2c70e88f281",
+   "size": 1294663
+  },
+  "data/music/Folk/untitled.ogg": {
+   "sha512": "8f3322119d03f2ce8f1b348b824ceac47307998fcccf23eb54fc860875656d3f",
+   "size": 1545609
+  }
+ },
+ "ignore": "((js|css|alloy-editor)/(?!all.(js|css))|data/.*db|data/users/.*)",
+ "includes": {
+  "data/users/content.json": {
+   "signers": [],
+   "signers_required": 1
+  }
+ },
+ "inner_path": "content.json",
+ "modified": 1569261067,
+ "optional": "data/(video|music)/.*",
+ "postmessage_nonce_security": true,
+ "signers_sign": "Gw8a7ignaRdwHSVStmJX0Gxnyuyg535hGkFPqFPy7we+I2vCeiMEJ6BuiksrYnusZRXDjzx7ZOgcNCEM/wPOL28=",
+ "signs": {
+  "13T79X7tG8Fi3EZCev3xU1wYTtFHHnqWGQ": "GyZodlbvPOS4hH8Y68tQBQss7SSj9AX3SnKYLWjUkMjfGA1WLuML7esTBaLiDORVyitUwyNeB6CrH+L4MlI5bqU="
+ },
+ "signs_required": 1,
+ "title": "Ansho Rei",
+ "translate": ["index.html","js/all.js","alloy-editor/all.js"],
+ "zeronet_version": "0.7.1"
+}

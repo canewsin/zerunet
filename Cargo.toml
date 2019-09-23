@@ -1,0 +1,23 @@
+[package]
+name = "zerunet"
+version = "0.1.0"
+authors = ["Ansho Rei <anshorei@zeroid.bit>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde_json = "*"
+serde = { version = "*", features = ["derive"] }
+signatory = { version = "*", features = ["ecdsa"] }
+signatory-ring = "*"
+bitcoin = "*"
+ripemd160 = "*"
+secp256k1 = { version = "*", features = ["recovery"] }
+base64 = "*"
+rand = "*"
+sha2 = "*"
+hex = "*"
+basex-rs = "0.1.1"
+varmint = "*"
+json_filter_sorted = { path = "json_filter_sorted" }

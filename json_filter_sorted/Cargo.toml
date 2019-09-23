@@ -1,0 +1,13 @@
+[package]
+name = "json_filter_sorted"
+version = "0.1.1"
+authors = ["AbrarNitk <abrar.nitk@gmail.com>"]
+edition = "2018"
+description = "Serde JSON sorted and filter"
+license = "MIT"
+include = ["src/**/*", "Cargo.toml"]
+repository = "https://github.com/AbrarNitk/sorted_json_keys"
+
+[dependencies]
+serde_json = "1.0"
+failure = "~0.1.1"
