@@ -26,9 +26,14 @@ use signatory::{
   signature::{ Signature, Signer as _, Verifier as _ },
 };
 use signatory_ring::ecdsa::p256::{ Signer, Verifier };
+use pretty_env_logger;
+#[macro_use]
+use log::*;
 
 fn main() {
-    println!("Hello, world!");
+    pretty_env_logger::init();
+
+    info!("starting zerunet");
 
     let content_path = Path::new("test/content.json");
     let file = match File::open(content_path) {
@@ -40,11 +45,8 @@ fn main() {
       Ok(c) => c,
       Err(error) => { println!("error {:?}", error); return },
     };
-    println!("Hello, world!");
 
     let test_content2 = test_content.cleared();
-
-    println!("{:?}", test_content.signs);
 
     let new_content_path = Path::new("test/content-new.json");
     let mut new_file = match File::create(new_content_path) {
@@ -56,7 +58,6 @@ fn main() {
       Ok(s) => s,
       Err(_) => return,
     };
-    println!("{:?}", test_content.dump().unwrap().to_string());
 
     new_file.write_all(&test_content.dump().unwrap().to_string().as_bytes());
 
@@ -70,14 +71,20 @@ fn main() {
     let key = String::from("1JUDmCT4UCSdnPsJAHBoXNkDS61Y31Ue52");
 
     let value = match test_content.signs.get(&key) {
-      Some(v) => { println!("key from content {}",v); v },
-      None => { println!("Not found"); return },
+      Some(v) => { v },
+      None => { return },
     };
 
-    println!("{:?}", zerusign::verify(test_content.dump().unwrap().to_string(), key, String::from(value)));
-    println!("{:?}", zerusign::verify(
+    match zerusign::verify(test_content.dump().unwrap().to_string(), key, String::from(value)) {
+      Ok(_) => info!("Signature valid!"),
+      Err(_) => error!("Signature mismatch!"),
+    }
+    match zerusign::verify(
       String::from("Testmessage"),
       String::from("1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN"),
       String::from("G+Hnv6dXxOAmtCj8MwQrOh5m5bV9QrmQi7DSGKiRGm9TWqWP3c5uYxUI/C/c+m9+LtYO26GbVnvuwu7hVPpUdow=")
-    ));
+    ) {
+      Ok(_) => info!("Signature valid!"),
+      Err(_) => error!("Signature mismatch!"),
+    }
 }

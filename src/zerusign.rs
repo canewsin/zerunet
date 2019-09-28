@@ -5,8 +5,8 @@ use signatory::generic_array::GenericArray;
 use std::str::FromStr;
 use ripemd160::{ Ripemd160 };
 use basex_rs::{ BaseX, Encode, BITCOIN};
-use varmint::WriteVarInt;
 use bitcoin::consensus::encode::{ VarInt, serialize };
+use log::*;
 
 #[derive(Debug)]
 pub enum Error {
@@ -38,12 +38,7 @@ static MSG_SIGN_PREFIX: &'static [u8] = b"\x18Bitcoin Signed Message:\n";
 
 pub fn msg_hash (msg: String) -> Vec<u8> {
   let mut bytes = vec![];
-  // println!("{:X?}", );
-  println!("{}", msg.len());
-  bytes.write_usize_varint(msg.len()).unwrap();
-  // bytes = zero_len(msg.len() as u64);
   bytes = serialize(&VarInt(msg.len() as u64));
-  println!("{:X?}", bytes);
   sha256d(&[
     MSG_SIGN_PREFIX,
     bytes.as_slice(),
@@ -56,9 +51,7 @@ pub fn verify(data: String, valid_address: String, sign: String) -> Result<(),Er
     Ok(s) => s,
     Err(_) => return Err(Error::DecodeSignatureFailure),
   };
-  println!("msg {}", &data);
   let hash = msg_hash(data);
-  println!("hash {:X?}", hash);
 
   let (sig_first, sig_r) = match sig.split_first() {
     Some(t) => t,
