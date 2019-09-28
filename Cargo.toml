@@ -9,8 +9,8 @@ edition = "2018"
 [dependencies]
 serde_json = "*"
 serde = { version = "*", features = ["derive"] }
-signatory = { version = "*", features = ["ecdsa"] }
-signatory-ring = "*"
+signatory = { version = "0.13", features = ["ecdsa"] }
+signatory-ring = "0.13"
 bitcoin = "*"
 ripemd160 = "*"
 secp256k1 = { version = "*", features = ["recovery"] }
@@ -19,5 +19,9 @@ rand = "*"
 sha2 = "*"
 hex = "*"
 basex-rs = "0.1.1"
-varmint = "*"
 json_filter_sorted = { path = "json_filter_sorted" }
+log = "0.4"
+pretty_env_logger = "0.3"
+rusqlite = "*"
+actix = "*"
+diesel = "*"
