@@ -1,6 +1,8 @@
 mod content;
 mod content_manager;
 mod zerusign;
+mod server;
+mod influx_logger;
 
 use std::fs::File;
 use std::path::Path;
@@ -12,9 +14,12 @@ use bitcoin::util::misc::signed_msg_hash;
 use ripemd160::{ Ripemd160, Digest };
 use base64::{ encode, decode };
 use secp256k1::{ Secp256k1, Message, recovery };
-use rand::OsRng;
+use rand::rngs::{ OsRng };
 use sha2::{Sha256};
+use std::path::PathBuf;
+
 use sha2::digest::FixedOutput;
+use reqwest;
 
 use signatory::{
   ecdsa::{
@@ -30,10 +35,18 @@ use pretty_env_logger;
 #[macro_use]
 use log::*;
 
+// curl "http://localhost:9999/api/v2/write?org=zerunet&bucket=zeronet&precision=s" \                        Fri 27 Sep 2019 23:57:24 CEST
+//      --header "Authorization: Token hgt8JHm1c6c9_rD_lumpXNEf1qCjVqyT13AOSzrlbZfhlKEIc5MaMfKgZq8H4w1wHDCsFICF-UGEI3Zok5OiMg==" \
+//      --data-raw "mem,host=host1 used_percent=27"
+
 fn main() {
+    let data_path = PathBuf::from("/home/crolsi/Programs/ZeroNet/data/");
     pretty_env_logger::init();
+    // influx_logger::init();
 
     info!("starting zerunet");
+
+    let zero_server = server::ZeroServer::new();
 
     let content_path = Path::new("test/content.json");
     let file = match File::open(content_path) {
@@ -61,9 +74,9 @@ fn main() {
 
     new_file.write_all(&test_content.dump().unwrap().to_string().as_bytes());
 
-    let secp = secp256k1::Secp256k1::new();
-    let mut rng = OsRng::new().expect("OsRng");
-    let (privkey, pubkey) = secp.generate_keypair(&mut rng);
+    // let secp = secp256k1::Secp256k1::new();
+    // let mut rng: OsRng = OsRng::new().expect("OsRng");
+    // let (privkey, pubkey) = secp.generate_keypair(&mut rng);
 
     let test_msg = String::from("testmessage");
     // let test_sig = secp.sign(test_msg, privkey);

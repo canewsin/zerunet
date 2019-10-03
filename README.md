@@ -12,27 +12,40 @@ In the current state of development, getting a working prototype is the number o
 ## Code of Conduct
 Code of Conducts are for wussies, anyone is welcome to contribute to zerunet or use it in any way they deem useful. We do not care what crimes, fictitious or real, anyone is accused of having committed.
 
-# Imported Components
+## Imported Libraries
 - Bitcoin utilities: rust-bitcoin
 - Cryptography: sha2, secp256k1, ripemd160, signatory
 - Serialization: serde, serde_json, json_filter_sorted (local)
 - InfluxDB: influxdb
-- SQLite
+- SQLite: rusqlite
 - BitTorrent
 - Tor Controller
+- I2P: i2p-rs
 - HTTP Server
+
+## Measurements stored to InfluxDB
+- Active connections
+- Upload (req & bandwidth)
+- Download (req & bandwidth)
 
 # Included Components
 - Content Manager
 - Site Manager
 
+Checklist:
 - [ ] Content Manager
   - [x] Content struct
   - [x] Content serialization
   - [x] Content verification
   - [ ] Content signing
 - [ ] Site Manager
+  - [ ] Store zites in
 - [ ] Peer Manager
 - [ ] Web Interface
+  - [x] Serve zites
+  - [ ] ZeroNet container
+  - [ ] API/WebSocket
 - [ ] Tor Integration
 - [ ] Logging
+  - [x] env_logger
+  - [ ] Influx Logger
