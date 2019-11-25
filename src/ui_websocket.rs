@@ -11,6 +11,7 @@ fn handle_request(req: Request) {
 }
 
 // fn action_as()
+//   forward the request to another SiteManager if permitted
 // fn action_response()
 // fn action_ping()
 // fn action_site_info()

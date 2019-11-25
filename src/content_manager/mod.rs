@@ -5,6 +5,7 @@ use log::{error, trace, info};
 use std::io::BufReader;
 use std::fs::File;
 use super::content::Content;
+use crate::error::Error;
 
 pub struct ContentManager {
   path: PathBuf,
@@ -13,28 +14,24 @@ pub struct ContentManager {
 }
 
 impl ContentManager {
-  // pub fn load_contents() {}
+  // loads all content.json files for site
+  pub fn load_contents() {
+    info!("Initializing ")
+  }
+
   // pub fn get_file_changes()
-  pub fn load_content(&mut self, inner_path: PathBuf) {
+  pub fn load_content(&mut self, inner_path: PathBuf) -> Result<(), Error> {
     let content_path = self.path
       .join(Path::new(&self.site))
       .join(&inner_path);
     if !content_path.is_file() {
-      error!("Path is not a file");
-      return
+      error!("Could not load content.json: {:?} does not exist", &content_path.into_os_string());
+      return Err(Error::FileNotFound)
     }
-    let content_file = match File::open(content_path.as_path()) {
-      Ok(f) => f,
-      Err(_) => return,
-    };
-    let content: Content = match serde_json::from_reader(
-      BufReader::new(content_file)) {
-        Ok(c) => c,
-        Err(_) => {
-          error!("Could not read content.json");
-          return
-        }
-      };
+    let content_file = File::open(content_path.as_path())?;
+    let content: Content = serde_json::from_reader(
+      BufReader::new(content_file))?;
+    return Ok(())
     // let old_content = self.db.get(inner_path);
 
   }

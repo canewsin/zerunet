@@ -13,9 +13,9 @@ signatory = { version = "0.13", features = ["ecdsa"] }
 signatory-ring = "0.13"
 bitcoin = "*"
 ripemd160 = "*"
-secp256k1 = { version = "*", features = ["recovery"] }
+secp256k1 = { version = "0.15.5", features = ["recovery", "rand"] }
 base64 = "*"
-rand = "0.7"
+rand = { version = "0.6.5", features = ["rand_os"] }
 sha2 = "*"
 hex = "*"
 basex-rs = "0.1.1"
@@ -26,8 +26,13 @@ pretty_env_logger = "0.3"
 actix = "*"
 actix-web = "*"
 actix-files = "*"
+actix-web-actors = "*"
 diesel = "*"
-i2p = "*"
-rand_core = "0.5"
+i2p = { git = "https://github.com/i2p/i2p-rs" }
+# rand = { version = "0.5", features = ["rand_os"] }
 reqwest = "*"
 env_logger = "0.6.2"
+# ws = "*"
+pulldown-cmark = "*"
+futures = "*"
+uuid = { version = "0.8", features = ["serde", "v4"] }
