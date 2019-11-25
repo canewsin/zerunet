@@ -1,7 +1,6 @@
 # zerunet
-Pronounced Z-Rune-Net.
+Pronounced \\zē·rün·net\\ or z-rune-net.
 zerunet is an implementation of the ZeroNet client written entirely in the rust programming language.
-Linked Encrypted Network Interface Node
 
 ## IMPORTANT
 In the current state of development, getting a working prototype is the number one priority, and this means that some parts may be implemented in a way that is fast to write rather than fast to execute. It is also possible outdated packages will be used temporarily until it's worth replacing them with active ones or, alternatively, update them ourselves.
@@ -22,7 +21,7 @@ Code of Conducts are for wussies, anyone is welcome to contribute to zerunet or 
 - BitTorrent
 - Tor Controller
 - I2P: i2p-rs
-- HTTP Server
+- HTTP Server+WebSocket: actix-web
 
 ## Measurements stored to InfluxDB
 - Active connections
@@ -47,17 +46,19 @@ Checklist:
   - [ ] Allow using multiple identities from same ID provider
     - [ ] Reload page on ID change to prevent data collection
     - [ ] Make settings storage depend on
-- [ ] Peer Manager
-  - [ ] Get peers from trackers
-  - [ ] Get peers through DHT
-  - [ ] Get local peers through LAN
-    - [ ] Option to enable this even when using I2P/Tor
 - [ ] Web Interface
   - [x] Serve zites
-    - [x] ZeroNet wrapper
+    - [ ] Content type detection
+    - [ ] Do a safety check for '../' in paths
+    - [x] Serve ZeroNet wrapper
+      - [x] Don't serve html without nonce
       - [ ] Don't allow editing of files unless permission is given
   - [ ] API/WebSocket
-- [ ] Anonymous mode
+    - [x] WebSocket endpoint
+    - [ ] Implement wrapper actions
+- [ ] Peer connectivity
+  - [ ] Clearnet
+  - [ ] LAN
   - [ ] Tor Integration
   - [ ] I2P Integration
 - [ ] Logging
