@@ -27,12 +27,9 @@ actix = "*"
 actix-web = "*"
 actix-files = "*"
 actix-web-actors = "*"
-diesel = "*"
 i2p = { git = "https://github.com/i2p/i2p-rs" }
-# rand = { version = "0.5", features = ["rand_os"] }
 reqwest = "*"
 env_logger = "0.6.2"
-# ws = "*"
 pulldown-cmark = "*"
 futures = "*"
 uuid = { version = "0.8", features = ["serde", "v4"] }
