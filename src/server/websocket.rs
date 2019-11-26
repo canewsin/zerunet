@@ -47,7 +47,10 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for ZeruWebsocket {
           Ok(c) => c,
           Err(_) => {error!("unknown command {:?}", text); return},
         };
-        handle_command(command);
+        match command.cmd {
+          ServerInfo => { handle_server_info(ctx); },
+          _ => handle_command(&command),
+        };
       },
       ws::Message::Binary(bin) => ctx.binary(bin),
       _ => (),
@@ -55,9 +58,38 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for ZeruWebsocket {
   }
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct ServerInfo {
+  debug: bool,
+  fileserver_ip: String,
+  fileserver_port: usize,
+  ip_external: bool,
+  platform: String,
+  ui_ip: String,
+  ui_port: usize,
+  version: String,
+}
+
+fn handle_server_info(ctx: &mut ws::WebsocketContext<ZeruWebsocket>) -> Result<(), Error> {
+  trace!("Handle ServerInfo request");
+  let server_info = ServerInfo {
+    debug: true,
+    fileserver_ip: String::from(super::SERVER_URL),
+    fileserver_port: super::SERVER_PORT,
+    ip_external: false,
+    platform: String::from("linux64"),
+    ui_ip: String::from("localhost"),
+    ui_port: super::SERVER_PORT,
+    version: String::from("0.0.1"),
+  };
+  let j = serde_json::to_string(&server_info)?;
+  ctx.text(j);
+  Ok(())
+}
+
 use CommandType::*;
 
-fn handle_command(command: Command) {
+fn handle_command(command: &Command) {
   match command.cmd {
     UserGetGlobalSettings => info!("userGetGlobal"),
     // ChannelJoin => info!("channelJoin"),

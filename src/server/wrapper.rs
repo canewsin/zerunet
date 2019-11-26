@@ -1,11 +1,12 @@
 use super::SERVER_URL;
-use actix_web::{Result, HttpRequest, HttpResponse};
+use actix_web::{Result, HttpRequest, HttpResponse, Responder};
 use actix_files::NamedFile;
 use log::*;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::io::Read;
 use uuid::Uuid;
+use crate::error::Error;
 
 struct WrapperData {
   inner_path: String,
@@ -36,12 +37,12 @@ pub fn serve_wrapper(req: HttpRequest, data: actix_web::web::Data<crate::server:
   {
     let mut nonces = data.wrapper_nonces.lock().unwrap();
     nonces.insert(nonce.clone());
-    info!("{:?}", nonces);
+    trace!("Valid nonces ({}): {:?}", nonces.len(), nonces);
   }
 
   let address = req.match_info().query("address");
   let inner_path = req.match_info().query("inner_path");
-  info!("{:?}, {:?}", address, inner_path);
+  info!("Serving wrapper for zero://{}/{}", address, inner_path);
 
   let path = PathBuf::from("./ui/wrapper.html");
   let string = match render(&path, WrapperData {
@@ -80,7 +81,7 @@ fn render(file_path: &Path, data: WrapperData) -> Result<String,()> {
   let mut file = match File::open(file_path) {
     Ok(f) => f,
     Err(error) => {
-      info!("Failed to get file: {:?}", error);
+      error!("Failed to get file: {:?}", error);
       return Result::Err(())
     }
   };
@@ -113,23 +114,31 @@ fn render(file_path: &Path, data: WrapperData) -> Result<String,()> {
   return Ok(string)
 }
 
-pub fn serve_uimedia(req: HttpRequest) -> Result<NamedFile, ()> {
-  let file_url = req.match_info().query("file_url");
-  info!("uimedia req {:?}", file_url);
-  let file_path = PathBuf::from("./ui/media")
-    .join(PathBuf::from(file_url));
-
-  if !file_path.exists() {
-    return Result::Err(());
+pub fn serve_uimedia(req: HttpRequest) -> HttpResponse {
+  let inner_path = req.match_info().query("inner_path");
+  match serve_uimedia_file(inner_path) {
+    Ok(f) => match f.respond_to(&req) {
+      Ok(r) => r,
+      Err(_) => HttpResponse::BadRequest().finish(),
+    },
+    Err(_) => HttpResponse::BadRequest().finish(),
   }
+}
 
-  let file = match NamedFile::open(file_path) {
-    Ok(f) => f,
-    Err(error) => {
-      info!("Failed to get file {:?}", error);
-      return Result::Err(())
-    }
-  };
+pub fn serve_uimedia_file(inner_path: &str) -> Result<NamedFile, Error> {
+  trace!("Serving uimedia file: {:?}", inner_path);
+  let mut file_path = PathBuf::from("./ui/media");
+  
+  match inner_path {
+    "favicon.ico" | "apple-touch-icon.png" => file_path.push(&Path::new("img")),
+    _ => {},
+  }
+  file_path.push(&Path::new(inner_path));
+  
+  if !file_path.is_file() {
+    return Err(Error::FileNotFound);
+  }
+  let f = NamedFile::open(file_path)?;
 
-  Result::Ok(file)
+  Ok(f)
 }

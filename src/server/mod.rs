@@ -15,7 +15,8 @@ use websocket::serve_websocket;
 use site::serve_file;
 use std::collections::{HashSet, HashMap};
 
-const SERVER_URL: &str = &"127.0.0.1:42110";
+const SERVER_URL: &str = &"127.0.0.1";
+const SERVER_PORT: usize = 42110;
 
 pub struct ZeroServer {
   wrapper_nonces: Mutex<HashSet<String>>,
@@ -39,14 +40,15 @@ pub fn run() {
       // Console
       // Benchmark
       // About
-      .route("/uimedia/{file_url:.*}", get().to(serve_uimedia))
-      .route("/{address}", get().to(serve_site))
-      .route("/{address}/{inner_path:.*}", get().to(serve_site))
+      .route("/uimedia/{inner_path:.*}", get().to(serve_uimedia))
+      .route("/{address:1.+}", get().to(serve_site))
+      .route("/{address:1.+}/{inner_path:.*}", get().to(serve_site))
+      .route("/{inner_path}", get().to(serve_uimedia))
       // .route("/{address}/{file_url:.*}", get().to(serve_site))
       // .route("/{address}", get().to(serve_site))
       // .route("/{address}/{inner_path:.*}", get().to(serve_site))
     })
-    .bind(SERVER_URL)
+    .bind(format!("{}:{}", SERVER_URL, SERVER_PORT))
     .unwrap()
     .run()
     .unwrap();
@@ -59,23 +61,25 @@ fn serve_site(
   -> HttpResponse
 {
   let mut wrapper = true;
-  // info!("Req: {:?}", req);
-  if req.match_info().query("inner_path").len() > 0 {
-    info!("Received file request {}", req.match_info().query("inner_path"));
+  let address = req.match_info().query("address");
+  let inner_path = req.match_info().query("inner_path");
+  if inner_path == "favicon.ico" {
+    return serve_uimedia(req);
+  } else if inner_path.len() > 0 {
     wrapper = false;
   } else {
     let mut wrapper_nonces = data.wrapper_nonces.lock().unwrap();
     let wrapper_nonce = query.get("wrapper_nonce");
     if wrapper_nonce.is_some() && wrapper_nonces.contains(wrapper_nonce.unwrap()) {
-      info!("Nonce matches!");
       wrapper_nonces.remove(wrapper_nonce.unwrap());
       wrapper = false;
-    } else {
+    } else if wrapper_nonce.is_some() {
       warn!("Nonce {:?} not found!", wrapper_nonce);
     }
-  }
+  } // wrapper_nonces lock released here
 
   if wrapper {
+    trace!("No valid nonce provided, serving wrapper for {}", address);
     return serve_wrapper(req, data)
   }
   match serve_file(&req, data) {

@@ -23,7 +23,7 @@ pub fn serve_file(req: &HttpRequest, _data: Data<crate::server::ZeroServer>) -> 
     file_path = file_path.join(PathBuf::from("index.html"));
   }
 
-  trace!("Serve file zero://{}/{}",
+  trace!("Serving file: zero://{}/{}",
     req.match_info().query("address"),
     req.match_info().query("inner_path"));
 
