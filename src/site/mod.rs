@@ -1,4 +1,5 @@
 mod address;
+mod site_info;
 
 use address::Address;
 use actix::prelude::*;
