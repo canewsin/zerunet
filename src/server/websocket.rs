@@ -5,17 +5,15 @@ use actix_web_actors::ws;
 use log::*;
 use futures::Future;
 use serde::{Serialize, Deserialize};
-use std::collections::HashMap;
 use crate::site;
 
 pub fn serve_websocket(req: HttpRequest, stream: Payload) -> Result<HttpResponse, Error> {
   let site = site::Site::new();
   let addr: actix::Addr<site::Site> = site.start();
-  let resp = ws::start(ZeruWebsocket {
+
+  ws::start(ZeruWebsocket {
     site_addr: addr,
-  }, &req, stream);
-  info!("Received {:?}", resp);
-  resp
+  }, &req, stream)
 }
 
 struct ZeruWebsocket {
@@ -34,7 +32,6 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for ZeruWebsocket {
       ws::Message::Text(text) => {
         let result = self.site_addr
           .send(site::FileRequest(String::from("test")));
-
         actix::Arbiter::spawn(
           result.map(|res| {
             match res {
@@ -42,7 +39,7 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for ZeruWebsocket {
               Err(err) => println!("got err {:?}", err),
             }
           }).map_err(|err| {
-            println!("Actor is probably dead");
+            println!("Actor is probably dead {:?}", err);
           })
         );
 
@@ -63,9 +60,9 @@ use CommandType::*;
 fn handle_command(command: Command) {
   match command.cmd {
     UserGetGlobalSettings => info!("userGetGlobal"),
-    ChannelJoin => info!("channelJoin"),
-    SiteInfo => info!("siteInfo"),
-    _ => error!("unknown command"),
+    // ChannelJoin => info!("channelJoin"),
+    // SiteInfo => info!("siteInfo"),
+    _ => error!("Unknown command: '{:?}'", command.cmd),
   }
 }
 

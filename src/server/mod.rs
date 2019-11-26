@@ -1,9 +1,10 @@
 use actix_web::{
   App, HttpServer, Result, HttpResponse, HttpRequest,
+  Responder,
   web::{Data, Query, get},
 };
 use log::*;
-use std::sync::{RwLock, Mutex};
+use std::sync::{Mutex};
 
 mod wrapper;
 mod websocket;
@@ -11,7 +12,7 @@ mod site;
 
 use wrapper::{serve_uimedia, serve_wrapper};
 use websocket::serve_websocket;
-use site::serve_site;
+use site::serve_file;
 use std::collections::{HashSet, HashMap};
 
 const SERVER_URL: &str = &"127.0.0.1:42110";
@@ -39,8 +40,8 @@ pub fn run() {
       // Benchmark
       // About
       .route("/uimedia/{file_url:.*}", get().to(serve_uimedia))
-      .route("/{address}", get().to(get_site))
-      .route("/{address}/{inner_path:.*}", get().to(get_site))
+      .route("/{address}", get().to(serve_site))
+      .route("/{address}/{inner_path:.*}", get().to(serve_site))
       // .route("/{address}/{file_url:.*}", get().to(serve_site))
       // .route("/{address}", get().to(serve_site))
       // .route("/{address}/{inner_path:.*}", get().to(serve_site))
@@ -51,7 +52,12 @@ pub fn run() {
     .unwrap();
 }
 
-fn get_site(req: HttpRequest, query: Query<HashMap<String,String>>, data: Data<ZeroServer>) -> impl actix_web::Responder {
+fn serve_site(
+  req: HttpRequest,
+  query: Query<HashMap<String,String>>,
+  data: Data<ZeroServer>)
+  -> HttpResponse
+{
   let mut wrapper = true;
   // info!("Req: {:?}", req);
   if req.match_info().query("inner_path").len() > 0 {
@@ -68,10 +74,19 @@ fn get_site(req: HttpRequest, query: Query<HashMap<String,String>>, data: Data<Z
       warn!("Nonce {:?} not found!", wrapper_nonce);
     }
   }
+
   if wrapper {
-    return wrapper::serve_wrapper(req, data)
+    return serve_wrapper(req, data)
   }
-  return site::serve_site(req, data)
+  match serve_file(&req, data) {
+    Ok(res) => match res.respond_to(&req) {
+        Ok(r) => return r,
+        Err(_) => HttpResponse::BadRequest().finish(),
+      },
+    Err(_) => HttpResponse::BadRequest().finish(),
+  }
+
+  // return Box::new(site::serve_file(req, data))
   // match site::serve_site(req, data) {
   //   Ok(f) => return f.into_response(req),
   //   Err(_) => return {

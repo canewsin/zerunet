@@ -45,7 +45,7 @@ pub fn serve_wrapper(req: HttpRequest, data: actix_web::web::Data<crate::server:
 
   let path = PathBuf::from("./ui/wrapper.html");
   let string = match render(&path, WrapperData {
-    inner_path: String::from("/index.html"),
+    inner_path: String::from(inner_path),
     file_url: format!("\\/{}\\/", address),
     file_inner_path: String::from(inner_path),
     address: String::from(address),
@@ -59,10 +59,10 @@ pub fn serve_wrapper(req: HttpRequest, data: actix_web::web::Data<crate::server:
     postmessage_nonce_security: String::from("true"),
     permissions: String::from("[]"),
     show_loadingscreen: String::from("false"),
-    sandbox_permissions: String::from("false"),
+    sandbox_permissions: String::from("allow-popups-to-escape-sandbox"),
     rev: String::from("rev"),
     lang: String::from("lang"),
-    homepage: String::from("homepage"),
+    homepage: String::from("/1HeLLo4uzjaLetFx6NH3PMwFP3qbRbTf3D"),
     themeclass: String::from("themeclass"),
     script_nonce: String::from("script_nonce"),
   }) {

@@ -3,10 +3,8 @@ use actix_web::{
   web::{Data, Query}
 };
 use actix_files::NamedFile;
-use std::fs::File;
-use std::io::Read;
 use log::*;
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 use crate::error::Error;
 use serde::{Serialize, Deserialize};
 
@@ -15,10 +13,7 @@ pub struct Info {
   nonce: String,
 }
 
-pub fn serve_site(req: HttpRequest, data: Data<crate::server::ZeroServer>) -> HttpResponse {
-  info!("Serve file zero://{}/{}",
-    req.match_info().query("address"),
-    req.match_info().query("inner_path"));
+pub fn serve_file(req: &HttpRequest, _data: Data<crate::server::ZeroServer>) -> Result<NamedFile, Error> {
   
   let mut file_path = PathBuf::from("/home/crolsi/Programs/ZeroNet/data/")
     .join(PathBuf::from(req.match_info().query("address")))
@@ -28,25 +23,32 @@ pub fn serve_site(req: HttpRequest, data: Data<crate::server::ZeroServer>) -> Ht
     file_path = file_path.join(PathBuf::from("index.html"));
   }
 
-  // let file = NamedFile::open(file_path)?;
-  // Result::Ok(file)
+  trace!("Serve file zero://{}/{}",
+    req.match_info().query("address"),
+    req.match_info().query("inner_path"));
 
-  let mut file = match File::open(&file_path) {
-    Ok(f) => f,
-    Err(error) => {
-      error!("Error handling request: failed to get {:?}: {:?}", file_path, error);
-      return HttpResponse::from("not found");
-    }
-  };
-  let mut string = Vec::new();
-  match file.read_to_end(&mut string) {
-    Ok(_) => {},
-    Err(err) => error!("Failed to read to string {:?}", err),
-  };
+  let file = NamedFile::open(file_path)?;
+  Result::Ok(file)
 
-  HttpResponse::Ok()
-    .header("X-Hdr", "sample")
-    .body(string)
+  // let mut file = match File::open(&file_path) {
+  //   Ok(f) => f,
+  //   Err(error) => {
+  //     error!("Error handling request: failed to get {:?}: {:?}", file_path, error);
+  //     return HttpResponse::from("not found");
+  //   }
+  // };
+  // let mut string = Vec::new();
+  // match file.read_to_end(&mut string) {
+  //   Ok(_) => {},
+  //   Err(err) => error!("Failed to read to string {:?}", err),
+  // };
+
+  // HttpResponse::Ok()
+  //   .header("X-Hdr", "sample")
+  //   .content_type("")
+  //   .body(string)
+
+
 
   // let mut file = match File::open(file_path) {
   //   Ok(f) => f,
