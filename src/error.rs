@@ -1,4 +1,7 @@
+use actix_http::error::ResponseError;
+use derive_more::Display;
 
+#[derive(Debug, Display)]
 pub enum Error {
 	FileNotFound,
 	Deserialization,
@@ -20,8 +23,4 @@ impl From<serde_json::Error> for Error {
 	}
 }
 
-impl Into<actix_web::HttpResponse> for Error {
-	fn into(self) -> actix_web::HttpResponse {
-		actix_web::HttpResponse::BadRequest().finish()
-	}
-}
+impl ResponseError for Error {}

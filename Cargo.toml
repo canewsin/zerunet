@@ -27,6 +27,8 @@ actix = "*"
 actix-web = "*"
 actix-files = "*"
 actix-web-actors = "*"
+actix-http = "*"
+derive_more = "*"
 i2p = { git = "https://github.com/i2p/i2p-rs" }
 reqwest = "*"
 env_logger = "0.6.2"
