@@ -5,6 +5,7 @@ mod server;
 mod influx_logger;
 mod site;
 mod error;
+mod util;
 
 use std::fs::File;
 use std::path::Path;

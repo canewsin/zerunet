@@ -14,13 +14,11 @@ use serde::{ Serialize, Deserialize };
 use serde::ser::Serializer;
 use serde_json::{ Value, json };
 use std::default::Default;
+use crate::util::is_default;
 
 
 // use json_filter_sorted::sort::sort_json;
 
-fn is_default<T: Default + PartialEq>(t: &T) -> bool {
-    t == &T::default()
-}
 
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(default)]
