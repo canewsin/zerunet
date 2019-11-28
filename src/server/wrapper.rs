@@ -1,4 +1,4 @@
-use super::SERVER_URL;
+use super::{SERVER_URL, SERVER_PORT};
 use actix_web::{Result, HttpRequest, HttpResponse, Responder};
 use actix_files::NamedFile;
 use log::*;
@@ -90,7 +90,8 @@ fn render(file_path: &Path, data: WrapperData) -> Result<String,()> {
     Ok(_) => {},
     Err(_) => return Err(()),
   };
-  string = string.replace("{server_url}", SERVER_URL);
+  let server_url = format!("{}:{}", SERVER_URL, SERVER_PORT);
+  string = string.replace("{server_url}", &server_url.as_str());
   string = string.replace("{inner_path}", &data.inner_path);
   string = string.replace("{file_url}", &data.file_url);
   string = string.replace("{file_inner_path}", &data.file_inner_path);
@@ -126,7 +127,7 @@ pub fn serve_uimedia(req: HttpRequest) -> HttpResponse {
 }
 
 pub fn serve_uimedia_file(inner_path: &str) -> Result<NamedFile, Error> {
-  trace!("Serving uimedia file: {:?}", inner_path);
+  // trace!("Serving uimedia file: {:?}", inner_path);
   let mut file_path = PathBuf::from("./ui/media");
   
   match inner_path {

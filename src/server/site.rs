@@ -4,7 +4,7 @@ use actix_web::{
 };
 use actix_files::NamedFile;
 use log::*;
-use std::path::{PathBuf};
+use std::path::{Path, PathBuf};
 use crate::error::Error;
 use serde::{Serialize, Deserialize};
 
@@ -14,11 +14,16 @@ pub struct Info {
 }
 
 pub fn serve_file(req: &HttpRequest, _data: Data<crate::server::ZeroServer>) -> Result<NamedFile, Error> {
+  let mut file_path = PathBuf::new();
+  let address = req.match_info().query("address");
+  let inner_path = req.match_info().query("inner_path");
+  if address == "Test" {
+    file_path.push(&Path::new("test/wrapper/public"));
+  } else {
+    file_path = PathBuf::from("/home/crolsi/Programs/ZeroNet/data/");
+  }
+  file_path.push(&Path::new(inner_path));
   
-  let mut file_path = PathBuf::from("/home/crolsi/Programs/ZeroNet/data/")
-    .join(PathBuf::from(req.match_info().query("address")))
-    .join(PathBuf::from(req.match_info().query("inner_path")));
-
   if file_path.is_dir() {
     file_path = file_path.join(PathBuf::from("index.html"));
   }
