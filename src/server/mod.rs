@@ -7,7 +7,7 @@ use log::*;
 use std::sync::{Mutex};
 
 mod wrapper;
-mod websocket;
+pub mod websocket;
 mod site;
 
 use wrapper::{serve_uimedia, serve_wrapper};
@@ -40,6 +40,8 @@ pub fn run() {
       // Console
       // Benchmark
       // About
+      .route("/{address:Test}", get().to(serve_site))
+      .route("/{address:Test}/{inner_path:.*}", get().to(serve_site))
       .route("/uimedia/{inner_path:.*}", get().to(serve_uimedia))
       .route("/{address:1.+}", get().to(serve_site))
       .route("/{address:1.+}/{inner_path:.*}", get().to(serve_site))
