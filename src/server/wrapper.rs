@@ -7,6 +7,9 @@ use std::path::{Path, PathBuf};
 use std::io::Read;
 use uuid::Uuid;
 use crate::error::Error;
+use crate::site::address::Address;
+use crate::site::site_manager::AddWrapperKey;
+use futures::future::Future;
 
 struct WrapperData {
   inner_path: String,
@@ -31,7 +34,9 @@ struct WrapperData {
   script_nonce: String,
 }
 
-pub fn serve_wrapper(req: HttpRequest, data: actix_web::web::Data<crate::server::ZeroServer>) -> HttpResponse {
+pub fn serve_wrapper(
+  req: HttpRequest,
+  data: actix_web::web::Data<crate::server::ZeroServer>) -> HttpResponse {
   let nonce = Uuid::new_v4().to_simple().to_string();
 
   {
@@ -40,21 +45,36 @@ pub fn serve_wrapper(req: HttpRequest, data: actix_web::web::Data<crate::server:
     trace!("Valid nonces ({}): {:?}", nonces.len(), nonces);
   }
 
-  let address = req.match_info().query("address");
+  let address_string = req.match_info().query("address");
+  let address = match Address::from_str(address_string) {
+    Ok(a) => a,
+    Err(_) => return HttpResponse::from(format!("{} is a malformed ZeroNet address", address_string)),
+  };
   let inner_path = req.match_info().query("inner_path");
-  info!("Serving wrapper for zero://{}/{}", address, inner_path);
+  info!("Serving wrapper for zero://{}/{}", address.get_address_short(), inner_path);
+
+  let result = data.site_manager.send(AddWrapperKey::new(
+    address.clone(),
+    nonce.clone(),
+  ));
+  // The idea here is to make sure that the key has been added before
+  // responding to the request, but it's highly unlikely that this
+  // future would not be resolved. Maybe it's ok to just use do_send?
+  if result.wait().is_err() {
+    error!("Error sending wrapper key to site manager");
+  }
 
   let path = PathBuf::from("./ui/wrapper.html");
   let string = match render(&path, WrapperData {
     inner_path: String::from(inner_path),
-    file_url: format!("\\/{}\\/", address),
+    file_url: format!("\\/{}\\/{}", address.to_string(), inner_path),
     file_inner_path: String::from(inner_path),
-    address: String::from(address),
+    address: format!("{}", address.to_string()),
     title: String::from("zerunet test site"),
     body_style: String::from("body_style"),
     meta_tags: String::from("<test>"),
     query_string: format!("\\?wrapper_nonce\\={}", nonce.clone()),
-    wrapper_key: String::from("wrapper_key"),
+    wrapper_key: nonce.clone(),
     ajax_key: String::from("ajax_key"),
     wrapper_nonce: nonce.clone(),
     postmessage_nonce_security: String::from("true"),
@@ -117,6 +137,7 @@ fn render(file_path: &Path, data: WrapperData) -> Result<String,()> {
 
 pub fn serve_uimedia(req: HttpRequest) -> HttpResponse {
   let inner_path = req.match_info().query("inner_path");
+
   match serve_uimedia_file(inner_path) {
     Ok(f) => match f.respond_to(&req) {
       Ok(r) => r,

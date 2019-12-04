@@ -1,33 +1,55 @@
 pub mod request;
 pub mod response;
 
-use actix::{Actor, StreamHandler};
-use actix_web::{HttpRequest, Result, Error, HttpResponse};
-use actix_web::web::Payload;
+use actix::{Actor, StreamHandler, Addr};
+use actix_web::{
+	HttpRequest, Result, Error, HttpResponse,
+	web::{Data, Payload, Query},
+};
 use actix_web_actors::ws;
 use log::*;
 use futures::Future;
 use serde::{Serialize, Deserialize};
-use crate::site;
+use crate::site::{
+	site_manager::{SiteManager, Lookup},
+};
 use request::{
 	CommandType::*,
 	Command,
 };
 use response::Message;
+use std::collections::HashMap;
 
-pub fn serve_websocket(req: HttpRequest, stream: Payload) -> Result<HttpResponse, Error> {
-  let site = site::Site::new();
-  let addr: actix::Addr<site::Site> = site.start();
-  info!("Serving websocket");
+pub fn serve_websocket(
+	req: HttpRequest, 
+	query: Query<HashMap<String,String>>,
+	data: Data<crate::server::ZeroServer>,
+	stream: Payload) -> Result<HttpResponse, Error> {
+	info!("Serving websocket {:?}", req);
+	let wrapper_key = query.get("wrapper_key").unwrap();
+
+	let result = data.site_manager.send(Lookup::Key(String::from(wrapper_key)));
+	actix::Arbiter::spawn(
+		result.map(|res| {
+			match res {
+				Ok(result) => info!("got address {:?}", result),
+				Err(err) => error!("got err {:?}", err),
+			}
+		}).map_err(|err| {
+			warn!("Actor is probably dead {:?}", err);
+		})
+	);
 
   let resp = ws::start(ZeruWebsocket {
-    site_addr: addr,
+		site_manager: data.site_manager.clone(),
+    site_addr: None,
   }, &req, stream);
   resp
 }
 
 struct ZeruWebsocket {
-  site_addr: actix::Addr<site::Site>,
+	site_manager: Addr<SiteManager>,
+  site_addr: Option<actix::Addr<crate::site::Site>>,
 }
 
 impl Actor for ZeruWebsocket {
@@ -49,22 +71,24 @@ impl Actor for ZeruWebsocket {
 
 impl StreamHandler<ws::Message, ws::ProtocolError> for ZeruWebsocket {
   fn handle(&mut self, msg: ws::Message, ctx: &mut Self::Context) {
-    // info!("{:?}", msg);
+		info!("{:?}", msg);
     match msg {
       ws::Message::Ping(msg) => ctx.pong(&msg),
       ws::Message::Text(text) => {
-        let result = self.site_addr
-          .send(site::FileRequest(String::from("test")));
-        actix::Arbiter::spawn(
-          result.map(|res| {
-            match res {
-              Ok(result) => info!("got result {:?}", result),
-              Err(err) => error!("got err {:?}", err),
-            }
-          }).map_err(|err| {
-            warn!("Actor is probably dead {:?}", err);
-          })
-        );
+				if let Some(addr) = &self.site_addr {
+					let result = addr
+            .send(crate::site::FileRequest(String::from("test")));
+					actix::Arbiter::spawn(
+						result.map(|res| {
+							match res {
+								Ok(result) => info!("got result {:?}", result),
+								Err(err) => error!("got err {:?}", err),
+							}
+						}).map_err(|err| {
+							warn!("Actor is probably dead {:?}", err);
+						})
+					);
+				}
 
         let command: Command = match serde_json::from_str(&text) {
           Ok(c) => c,
@@ -73,14 +97,15 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for ZeruWebsocket {
         match command.cmd {
           ServerInfo => { handle_server_info(ctx, &command); },
           SiteInfo => {
-            let response = WrapperCommand {
-              cmd: WrapperCommandType::Response,
-              to: command.id,
-              result: WrapperResponse::Text(String::from("")),
-            };
-            let j = serde_json::to_string(&response).unwrap();
-            error!("SiteInfo improperly handled!");
-            ctx.text(j);
+
+            // let response = WrapperCommand {
+            //   cmd: WrapperCommandType::Response,
+            //   to: command.id,
+            //   result: WrapperResponse::Text(String::from("")),
+            // };
+            // let j = serde_json::to_string(&response).unwrap();
+            // error!("SiteInfo improperly handled!");
+            // ctx.text(j);
           },
           InnerReady => { handle_inner_ready(ctx); },
           _ => {

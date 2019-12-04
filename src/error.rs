@@ -5,6 +5,7 @@ use derive_more::Display;
 pub enum Error {
 	FileNotFound,
 	Deserialization,
+	MissingError,
 }
 
 impl From<std::io::Error> for Error {

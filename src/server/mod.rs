@@ -3,6 +3,7 @@ use actix_web::{
   Responder,
   web::{Data, Query, get},
 };
+use actix::Actor;
 use log::*;
 use std::sync::{Mutex};
 
@@ -10,6 +11,7 @@ mod wrapper;
 pub mod websocket;
 mod site;
 
+use crate::site::site_manager::SiteManager;
 use wrapper::{serve_uimedia, serve_wrapper};
 use websocket::serve_websocket;
 use site::serve_file;
@@ -19,6 +21,7 @@ const SERVER_URL: &str = &"127.0.0.1";
 const SERVER_PORT: usize = 42110;
 
 pub struct ZeroServer {
+  site_manager: actix::Addr<SiteManager>,
   wrapper_nonces: Mutex<HashSet<String>>,
 }
 
@@ -27,11 +30,15 @@ fn index() -> Result<String> {
 }
 
 pub fn run() {
-  let shared_data = Data::new(ZeroServer{
-    wrapper_nonces: Mutex::new(HashSet::new()),
-  });
+  let system = actix::System::new("Site manager");
+  let site_manager = SiteManager::new();
+  let addr = site_manager.start();
 
   HttpServer::new(move || {
+    let shared_data = Data::new(ZeroServer{
+      site_manager: addr.clone(),
+      wrapper_nonces: Mutex::new(HashSet::new()),
+    });
     App::new()
       .register_data(shared_data.clone())
       .route("/", get().to(index))
@@ -40,11 +47,11 @@ pub fn run() {
       // Console
       // Benchmark
       // About
-      .route("/{address:Test}", get().to(serve_site))
       .route("/{address:Test}/{inner_path:.*}", get().to(serve_site))
+      .route("/{address:Test}", get().to(serve_site))
       .route("/uimedia/{inner_path:.*}", get().to(serve_uimedia))
-      .route("/{address:1.+}", get().to(serve_site))
-      .route("/{address:1.+}/{inner_path:.*}", get().to(serve_site))
+      .route("/{address:1[^/]+}/{inner_path:.*}", get().to(serve_site))
+      .route("/{address:1[^/]+}", get().to(serve_site))
       .route("/{inner_path}", get().to(serve_uimedia))
       // .route("/{address}/{file_url:.*}", get().to(serve_site))
       // .route("/{address}", get().to(serve_site))
@@ -67,7 +74,7 @@ fn serve_site(
   let inner_path = req.match_info().query("inner_path");
   if inner_path == "favicon.ico" {
     return serve_uimedia(req);
-  } else if inner_path.len() > 0 {
+  } else if inner_path.len() > 0 && inner_path.contains('.') && !inner_path.ends_with("/.html?/i") {
     wrapper = false;
   } else {
     let mut wrapper_nonces = data.wrapper_nonces.lock().unwrap();
@@ -76,20 +83,26 @@ fn serve_site(
       wrapper_nonces.remove(wrapper_nonce.unwrap());
       wrapper = false;
     } else if wrapper_nonce.is_some() {
-      warn!("Nonce {:?} not found!", wrapper_nonce);
+      warn!("Nonce {:?} invalid!", wrapper_nonce);
     }
   } // wrapper_nonces lock released here
 
   if wrapper {
-    trace!("No valid nonce provided, serving wrapper for {}", address);
+    trace!("No valid nonce provided, serving wrapper for zero:://{}", address);
     return serve_wrapper(req, data)
   }
   match serve_file(&req, data) {
     Ok(res) => match res.respond_to(&req) {
         Ok(r) => return r,
-        Err(_) => HttpResponse::BadRequest().finish(),
+        Err(err) => {
+          error!("Bad request {}", err);
+          HttpResponse::BadRequest().finish()
+        },
       },
-    Err(_) => HttpResponse::BadRequest().finish(),
+    Err(err) => {
+      error!("Bad request {}", err);
+      HttpResponse::BadRequest().finish()
+    },
   }
 
   // return Box::new(site::serve_file(req, data))

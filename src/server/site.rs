@@ -1,6 +1,6 @@
 use actix_web::{
-  HttpRequest, Result, HttpResponse,
-  web::{Data, Query}
+  HttpRequest, Result,
+  web::{Data}
 };
 use actix_files::NamedFile;
 use log::*;
@@ -21,6 +21,7 @@ pub fn serve_file(req: &HttpRequest, _data: Data<crate::server::ZeroServer>) -> 
     file_path.push(&Path::new("test/wrapper/public"));
   } else {
     file_path = PathBuf::from("/home/crolsi/Programs/ZeroNet/data/");
+    file_path.push(&Path::new(address));
   }
   file_path.push(&Path::new(inner_path));
   
@@ -28,39 +29,11 @@ pub fn serve_file(req: &HttpRequest, _data: Data<crate::server::ZeroServer>) -> 
     file_path = file_path.join(PathBuf::from("index.html"));
   }
 
-  trace!("Serving file: zero://{}/{}",
+  trace!("Serving file: zero://{}/{} as {:?}",
     req.match_info().query("address"),
-    req.match_info().query("inner_path"));
-
+    req.match_info().query("inner_path"),
+    file_path);
+  
   let file = NamedFile::open(file_path)?;
   Result::Ok(file)
-
-  // let mut file = match File::open(&file_path) {
-  //   Ok(f) => f,
-  //   Err(error) => {
-  //     error!("Error handling request: failed to get {:?}: {:?}", file_path, error);
-  //     return HttpResponse::from("not found");
-  //   }
-  // };
-  // let mut string = Vec::new();
-  // match file.read_to_end(&mut string) {
-  //   Ok(_) => {},
-  //   Err(err) => error!("Failed to read to string {:?}", err),
-  // };
-
-  // HttpResponse::Ok()
-  //   .header("X-Hdr", "sample")
-  //   .content_type("")
-  //   .body(string)
-
-
-
-  // let mut file = match File::open(file_path) {
-  //   Ok(f) => f,
-  //   Err(_) => return HttpResponse::Ok().body(format!("Could not load")),
-  // };
-  // let mut string = String::new();
-  // file.read_to_string(&mut string);
-  // HttpResponse::Ok().body(string)
-  // HttpResponse::Ok().body(format!("Hello world! {}", args.address))
 }

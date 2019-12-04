@@ -1,15 +1,12 @@
-mod address;
+pub mod address;
+pub mod site_manager;
 mod site_info;
 
 use address::Address;
 use actix::prelude::*;
 use actix;
-use std::collections::HashMap;
 
-pub struct SiteManager {
-  sites: HashMap<Address, Site>,
-}
-
+#[derive(Debug)]
 pub struct Site {
   address: Address,
 }
@@ -17,7 +14,7 @@ pub struct Site {
 impl Site {
   pub fn new() -> Site {
     Site {
-      address: Address::from_str("1ETC")
+      address: Address::from_str("1HeLLo4uzjaLetFx6NH3PMwFP3qbRbTf3D").unwrap()
     }
   }
 }
@@ -37,8 +34,7 @@ impl Handler<FileRequest> for Site {
   type Result = Result<bool, ()>;
 
   fn handle(&mut self, msg: FileRequest, ctx: &mut Context<Self>) -> Self::Result {
-    println!("filerequest received {:?}", msg);
-
+    // println!("filerequest received {:?}", msg);
     Ok(true)
   }
 }
