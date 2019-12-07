@@ -13,6 +13,11 @@ pub struct Address {
 impl Address {
   pub fn from_str(string: &str) -> Result<Address, Error> {
     let s = String::from(string);
+    if string == "Test" {
+      return Ok(Address {
+        address: String::from(string)
+      })
+    }
     if s.len() != 34 || !s.starts_with('1') {
       error!("Length should be 34, was {}, and start with a '1'.", string.len(),);
       return Err(Error::FileNotFound);
@@ -31,6 +36,9 @@ impl Address {
   }
   // first 6 and last 4 characters of address
   pub fn get_address_short(&self) -> String {
+    if self.address.as_str() == "Test" {
+      return self.address.clone()
+    }
     let l = self.address.len();
     // TODO: remove unwraps
     let f = self.address.get(0..6).unwrap();
