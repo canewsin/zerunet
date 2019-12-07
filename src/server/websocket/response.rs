@@ -11,6 +11,7 @@ pub struct Message {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum MessageType {
 	Response,
 	Error,
