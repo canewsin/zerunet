@@ -1,6 +1,6 @@
-use serde::{Serialize, Deserialize};
-use crate::util::is_default;
 use crate::error::Error;
+use crate::util::is_default;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct Message {

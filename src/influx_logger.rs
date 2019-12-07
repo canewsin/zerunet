@@ -1,30 +1,30 @@
+use env_logger::Builder;
 use log::Level;
 use reqwest;
-use env_logger::Builder;
 
 #[inline]
 pub fn init() {
-  try_init().unwrap();
+	try_init().unwrap();
 }
 
 pub fn try_init() -> Result<(), log::SetLoggerError> {
-  try_init_custom_env("RUST_LOG")
+	try_init_custom_env("RUST_LOG")
 }
 
-pub fn try_init_custom_env(environment_variable_name: &str)  -> Result<(), log::SetLoggerError> {
-  let mut builder = formatted_builder();
+pub fn try_init_custom_env(environment_variable_name: &str) -> Result<(), log::SetLoggerError> {
+	let mut builder = formatted_builder();
 
-  if let Ok(s) = ::std::env::var(environment_variable_name) {
-    builder.parse_filters(&s);
-  }
+	if let Ok(s) = ::std::env::var(environment_variable_name) {
+		builder.parse_filters(&s);
+	}
 
-  builder.try_init()
+	builder.try_init()
 }
 
 pub fn formatted_builder() -> Builder {
-  let mut builder = Builder::new();
+	let mut builder = Builder::new();
 
-  builder.format(|f, record| {
+	builder.format(|f, record| {
     use std::io::Write;
     let target = record.target();
     let level = record.level();
@@ -43,5 +43,5 @@ pub fn formatted_builder() -> Builder {
     }
   });
 
-  builder
+	builder
 }

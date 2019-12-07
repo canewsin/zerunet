@@ -1,14 +1,8 @@
-use super::{
-	address::Address,
-	Site,
-};
+use super::{address::Address, Site};
 use crate::error::Error;
-use actix::{
-	prelude::*,
-	Actor, Addr,
-};
-use std::collections::HashMap;
+use actix::{prelude::*, Actor, Addr};
 use log::*;
+use std::collections::HashMap;
 
 pub struct SiteManager {
 	sites: HashMap<Address, Addr<Site>>,
@@ -26,7 +20,10 @@ impl SiteManager {
 		if let Some(addr) = self.sites.get(&address) {
 			Ok((address, addr.clone()))
 		} else {
-			info!("Spinning up actor for zero://{}", address.get_address_short());
+			info!(
+				"Spinning up actor for zero://{}",
+				address.get_address_short()
+			);
 			let site = Site::new();
 			let addr = site.start();
 			self.sites.insert(address.clone(), addr.clone());
@@ -36,7 +33,7 @@ impl SiteManager {
 	pub fn get_by_key(&mut self, key: String) -> Result<(Address, Addr<Site>), Error> {
 		if let Some(address) = self.nonce.get(&key) {
 			if let Some(addr) = self.sites.get(&address) {
-				return Ok((address.clone(), addr.clone()))
+				return Ok((address.clone(), addr.clone()));
 			}
 		}
 		error!("No site found for key {}", key);
@@ -52,7 +49,7 @@ impl Actor for SiteManager {
 pub enum Lookup {
 	Address(Address),
 	Key(String),
-} 
+}
 
 impl Message for Lookup {
 	type Result = Result<(Address, Addr<Site>), Error>;
@@ -101,13 +98,19 @@ impl AddWrapperKey {
 impl Message for AddWrapperKey {
 	type Result = Result<(), Error>;
 }
-impl Handler<AddWrapperKey> for SiteManager{
+impl Handler<AddWrapperKey> for SiteManager {
 	type Result = Result<(), Error>;
 
 	fn handle(&mut self, msg: AddWrapperKey, _ctx: &mut Context<Self>) -> Self::Result {
 		let addr = self.get(msg.address.clone())?;
-		self.nonce.insert(msg.wrapper_key.clone(), msg.address.clone());
-		info!("Added wrapper key {} for {}", msg.wrapper_key, msg.address.get_address_short());
+		self
+			.nonce
+			.insert(msg.wrapper_key.clone(), msg.address.clone());
+		info!(
+			"Added wrapper key {} for {}",
+			msg.wrapper_key,
+			msg.address.get_address_short()
+		);
 		Ok(())
 	}
 }
