@@ -5,7 +5,7 @@ use actix_web::{
 };
 use actix::Actor;
 use log::*;
-use std::sync::{Mutex};
+use std::sync::{Arc, Mutex};
 
 mod wrapper;
 pub mod websocket;
@@ -22,7 +22,7 @@ const SERVER_PORT: usize = 42110;
 
 pub struct ZeroServer {
   site_manager: actix::Addr<SiteManager>,
-  wrapper_nonces: Mutex<HashSet<String>>,
+  wrapper_nonces: Arc<Mutex<HashSet<String>>>,
 }
 
 fn index() -> Result<String> {
@@ -33,11 +33,12 @@ pub fn run() {
   let system = actix::System::new("Site manager");
   let site_manager = SiteManager::new();
   let addr = site_manager.start();
+  let nonces = Arc::new(Mutex::new(HashSet::new()));
 
   HttpServer::new(move || {
     let shared_data = Data::new(ZeroServer{
       site_manager: addr.clone(),
-      wrapper_nonces: Mutex::new(HashSet::new()),
+      wrapper_nonces: nonces.clone(),
     });
     App::new()
       .register_data(shared_data.clone())
