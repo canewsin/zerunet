@@ -5,6 +5,7 @@ mod site_info;
 use address::Address;
 use actix::prelude::*;
 use actix;
+use site_info::SiteInfo;
 
 #[derive(Debug)]
 pub struct Site {
@@ -23,18 +24,25 @@ impl Actor for Site {
   type Context = Context<Self>;
 }
 
-#[derive(Debug)]
-pub struct FileRequest(pub String);
+pub struct SiteInfoRequest {}
 
-impl Message for FileRequest {
-  type Result = Result<bool, ()>;
+impl Message for SiteInfoRequest {
+  type Result = Result<SiteInfo, ()>;
 }
 
-impl Handler<FileRequest> for Site {
-  type Result = Result<bool, ()>;
+impl Handler<SiteInfoRequest> for Site {
+  type Result = Result<SiteInfo, ()>;
 
-  fn handle(&mut self, msg: FileRequest, ctx: &mut Context<Self>) -> Self::Result {
-    // println!("filerequest received {:?}", msg);
-    Ok(true)
+  fn handle(&mut self, msg: SiteInfoRequest, ctx: &mut Context<Self>) -> Self::Result {
+    Ok(SiteInfo {
+      tasks: 1,
+      size_limit: 1,
+      address: self.address.clone(),
+      next_size_limit: 2,
+      auth_address: String::from("test"),
+      auth_key_sha512: String::from("test"),
+      peers: 1,
+      auth_key: String::from("test"),
+    })
   }
 }

@@ -12,7 +12,7 @@ use log::*;
 
 pub struct SiteManager {
 	sites: HashMap<Address, Addr<Site>>,
-	nonce: HashMap<String, Addr<Site>>,
+	nonce: HashMap<String, Address>,
 }
 
 impl SiteManager {
@@ -22,20 +22,22 @@ impl SiteManager {
 			nonce: HashMap::new(),
 		}
 	}
-	pub fn get(&mut self, address: Address) -> Result<Addr<Site>, Error> {
+	pub fn get(&mut self, address: Address) -> Result<(Address, Addr<Site>), Error> {
 		if let Some(addr) = self.sites.get(&address) {
-			Ok(addr.clone())
+			Ok((address, addr.clone()))
 		} else {
 			info!("Spinning up actor for zero://{}", address.get_address_short());
 			let site = Site::new();
 			let addr = site.start();
-			self.sites.insert(address, addr.clone());
-			Ok(addr)
+			self.sites.insert(address.clone(), addr.clone());
+			Ok((address, addr))
 		}
 	}
-	pub fn get_by_key(&mut self, key: String) -> Result<Addr<Site>, Error> {
-		if let Some(addr) = self.nonce.get(&key) {
-			return Ok(addr.clone())
+	pub fn get_by_key(&mut self, key: String) -> Result<(Address, Addr<Site>), Error> {
+		if let Some(address) = self.nonce.get(&key) {
+			if let Some(addr) = self.sites.get(&address) {
+				return Ok((address.clone(), addr.clone()))
+			}
 		}
 		error!("No site found for key {}", key);
 		Err(Error::MissingError)
@@ -53,11 +55,11 @@ pub enum Lookup {
 } 
 
 impl Message for Lookup {
-	type Result = Result<Addr<Site>, Error>;
+	type Result = Result<(Address, Addr<Site>), Error>;
 }
 
 impl Handler<Lookup> for SiteManager {
-	type Result = Result<Addr<Site>, Error>;
+	type Result = Result<(Address, Addr<Site>), Error>;
 
 	fn handle(&mut self, msg: Lookup, _ctx: &mut Context<Self>) -> Self::Result {
 		match msg {
@@ -104,10 +106,8 @@ impl Handler<AddWrapperKey> for SiteManager{
 
 	fn handle(&mut self, msg: AddWrapperKey, _ctx: &mut Context<Self>) -> Self::Result {
 		let addr = self.get(msg.address.clone())?;
-		self.nonce.insert(msg.wrapper_key.clone(), addr);
+		self.nonce.insert(msg.wrapper_key.clone(), msg.address.clone());
 		info!("Added wrapper key {} for {}", msg.wrapper_key, msg.address.get_address_short());
-		trace!("{:?}", self.sites);
-		trace!("{:?}", self.nonce);
 		Ok(())
 	}
 }

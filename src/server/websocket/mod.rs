@@ -19,31 +19,31 @@ use request::{
 };
 use response::Message;
 use std::collections::HashMap;
+use ws::WebsocketContext;
 
 pub fn serve_websocket(
 	req: HttpRequest, 
 	query: Query<HashMap<String,String>>,
 	data: Data<crate::server::ZeroServer>,
 	stream: Payload) -> Result<HttpResponse, Error> {
-	info!("Serving websocket {:?}", req);
-	let wrapper_key = query.get("wrapper_key").unwrap();
+	info!("Serving websocket");
+  let wrapper_key = query.get("wrapper_key").unwrap();
 
-	let result = data.site_manager.send(Lookup::Key(String::from(wrapper_key)));
-	actix::Arbiter::spawn(
-		result.map(|res| {
-			match res {
-				Ok(result) => info!("got address {:?}", result),
-				Err(err) => error!("got err {:?}", err),
-			}
-		}).map_err(|err| {
-			warn!("Actor is probably dead {:?}", err);
-		})
-	);
-
-  let resp = ws::start(ZeruWebsocket {
+  let mut websocket = ZeruWebsocket {
 		site_manager: data.site_manager.clone(),
     site_addr: None,
-  }, &req, stream);
+  };
+
+  let future = data.site_manager.send(Lookup::Key(String::from(wrapper_key)));
+  match future.wait() {
+    Ok(Ok((address, addr))) => {
+      websocket.site_addr = Some(addr);
+      info!("Websocket established for {}", address);
+    },
+    _ => warn!("Websocket established, but wrapper key invalid"),
+  }
+
+  let resp = ws::start(websocket, &req, stream);
   resp
 }
 
@@ -56,63 +56,19 @@ impl Actor for ZeruWebsocket {
   type Context = ws::WebsocketContext<Self>;
 
   fn started(&mut self, ctx: &mut Self::Context) {
-    let msg = WrapperCommand{
-      cmd: WrapperCommandType::WrapperOpenedWebsocket,
-      to: 0,
-      result: WrapperResponse::Empty,
-    };
-    let j = serde_json::to_string(&msg);
-    if let Ok(text) = j {
-      info!("{}", text);
-      ctx.text(text);
-    }
   }
 }
 
 impl StreamHandler<ws::Message, ws::ProtocolError> for ZeruWebsocket {
   fn handle(&mut self, msg: ws::Message, ctx: &mut Self::Context) {
-		info!("{:?}", msg);
     match msg {
       ws::Message::Ping(msg) => ctx.pong(&msg),
       ws::Message::Text(text) => {
-				if let Some(addr) = &self.site_addr {
-					let result = addr
-            .send(crate::site::FileRequest(String::from("test")));
-					actix::Arbiter::spawn(
-						result.map(|res| {
-							match res {
-								Ok(result) => info!("got result {:?}", result),
-								Err(err) => error!("got err {:?}", err),
-							}
-						}).map_err(|err| {
-							warn!("Actor is probably dead {:?}", err);
-						})
-					);
-				}
-
         let command: Command = match serde_json::from_str(&text) {
           Ok(c) => c,
-          Err(_) => {error!("Unknown command: {:?}", text); return},
+          Err(_) => {error!("Could not deserialize incoming message: {:?}", text); return},
         };
-        match command.cmd {
-          ServerInfo => { handle_server_info(ctx, &command); },
-          SiteInfo => {
-
-            // let response = WrapperCommand {
-            //   cmd: WrapperCommandType::Response,
-            //   to: command.id,
-            //   result: WrapperResponse::Text(String::from("")),
-            // };
-            // let j = serde_json::to_string(&response).unwrap();
-            // error!("SiteInfo improperly handled!");
-            // ctx.text(j);
-          },
-          InnerReady => { handle_inner_ready(ctx); },
-          _ => {
-            error!("Unhandled command: {:?}", command.cmd);
-            handle_error(ctx, format!("Unhandled command: {:?}", command.cmd));
-          },
-        };
+        handle_command(ctx, self.site_addr.clone(), command);
       },
       ws::Message::Binary(bin) => ctx.binary(bin),
       _ => (),
@@ -157,6 +113,15 @@ pub struct ServerInfo {
   version: String,
 }
 
+fn handle_ping(ctx: &mut ws::WebsocketContext<ZeruWebsocket>, req: &Command) -> Result<(), Error> {
+  trace!("Handling ping");
+  let pong = String::from("pong");
+  let resp = Message::respond(req, pong)?;
+  let j = serde_json::to_string(&resp)?;
+  ctx.text(j);
+  Ok(())
+}
+
 fn handle_server_info(ctx: &mut ws::WebsocketContext<ZeruWebsocket>, req: &Command) -> Result<(), Error> {
   trace!("Handle ServerInfo request");
   let server_info = ServerInfo {
@@ -176,18 +141,6 @@ fn handle_server_info(ctx: &mut ws::WebsocketContext<ZeruWebsocket>, req: &Comma
   Ok(())
 }
 
-fn handle_inner_ready(ctx: &mut ws::WebsocketContext<ZeruWebsocket>) -> Result<(), Error> {
-  trace!("Handle InnerReady message");
-  let opened = WrapperCommand {
-    cmd: WrapperCommandType::WrapperOpenedWebsocket,
-    to: 0,
-    result: WrapperResponse::Empty,
-  };
-  let j = serde_json::to_string(&opened)?;
-  ctx.text(j);
-  Ok(())
-}
-
 fn handle_error(ctx: &mut ws::WebsocketContext<ZeruWebsocket>, text: String) -> Result<(), Error> {
   let error = WrapperCommand {
     cmd: WrapperCommandType::Error,
@@ -199,12 +152,36 @@ fn handle_error(ctx: &mut ws::WebsocketContext<ZeruWebsocket>, text: String) -> 
   Ok(())
 }
 
-fn handle_command(command: &Command) {
+fn handle_command(ctx: &mut ws::WebsocketContext<ZeruWebsocket>, addr: Option<actix::Addr<crate::site::Site>>, command: Command) {
   match command.cmd {
-    UserGetGlobalSettings => info!("userGetGlobal"),
-    // ChannelJoin => info!("channelJoin"),
-    // SiteInfo => info!("siteInfo"),
-    _ => error!("Unknown command: '{:?}'", command.cmd),
-  }
+    ServerInfo => { handle_server_info(ctx, &command); },
+    Ping => {
+      // ctx.spawn(|c| {
+        handle_ping(ctx, &command);
+      // });
+    },
+    SiteInfo => {
+      if let Some(addr) = addr {
+        let site_info_req = crate::site::SiteInfoRequest{};
+        let result = addr.send(site_info_req).wait();
+        if let Ok(Ok(res)) = result {
+          let resp = Message::respond(&command, res).unwrap();
+        
+          let j = serde_json::to_string(&resp).unwrap();
+          ctx.text(j);
+        }
+      }
+    },
+    _ => {
+      error!("Unhandled command: {:?}", command.cmd);
+      handle_error(ctx, format!("Unhandled command: {:?}", command.cmd));
+    },
+  };
+  // match command.cmd {
+  //   UserGetGlobalSettings => info!("userGetGlobal"),
+  //   // ChannelJoin => info!("channelJoin"),
+  //   // SiteInfo => info!("siteInfo"),
+  //   _ => error!("Unknown command: '{:?}'", command.cmd),
+  // }
 }
 
