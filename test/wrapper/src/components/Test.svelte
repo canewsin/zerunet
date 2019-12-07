@@ -30,11 +30,29 @@ let onTimeout = () => {
 
 onMount(() => {
 	test().then(onSuccess, onFailure)
-	setTimeout(onTimeout, 30*1000)
+	setTimeout(onTimeout, 10*1000)
 })
 </script>
 
-<div class="message is-{colors[status]}">
+<div class="card">
+	<header class="card-header has-background-{colors[status]}"  on:click="{() => open=!open}">
+		<p class="card-header-title">{title}</p>
+		<!-- <a class="card-header-icon" aria-label="more options">
+			<span class="icon">
+				<i class="fas fa-angle-down" aria-hidden="true"></i>
+			</span>
+		</a> -->
+	</header>
+	{#if open}
+		<div class="message-body has-text-left is-size-7">
+			<pre>
+				{@html body}
+			</pre>
+		</div>
+	{/if}
+</div>
+
+<!-- <div class="message is-{colors[status]}">
 	<div class="message-header">
 		<p>{title}</p>
     <button class="delete" aria-label="delete" on:click={() => open=!open}></button>
@@ -46,4 +64,4 @@ onMount(() => {
 			</pre>
 		</div>
 	{/if}
-</div>
+</div> -->
