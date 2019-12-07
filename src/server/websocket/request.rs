@@ -3,8 +3,6 @@ use serde::{Serialize, Deserialize};
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum CommandType {
-  // Wrapper
-  InnerReady,
   // API
   AnnouncerInfo,
   CertAdd,
