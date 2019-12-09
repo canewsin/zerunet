@@ -35,3 +35,5 @@ env_logger = "0.6.2"
 pulldown-cmark = "*"
 futures = "*"
 uuid = { version = "0.8", features = ["serde", "v4"] }
+regex = "1"
+quick-xml = "0.17"
