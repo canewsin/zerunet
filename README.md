@@ -1,6 +1,11 @@
+![Build](http://localhost:43110/14mVJrvB1XqtC4Aq55BmXyf9yXUN9iWwd8/img/build.svg)
+![Tests](http://localhost:43110/14mVJrvB1XqtC4Aq55BmXyf9yXUN9iWwd8/img/tests.svg)
+![Coverage](http://localhost:43110/14mVJrvB1XqtC4Aq55BmXyf9yXUN9iWwd8/img/coverage.svg)
+
 # zerunet
 Pronounced \\zē·rün·net\\ or z-rune-net.
 zerunet is an implementation of the ZeroNet client written entirely in the rust programming language.
+
 
 ## IMPORTANT
 In the current state of development, getting a working prototype is the number one priority, and this means that some parts may be implemented in a way that is fast to write rather than fast to execute. It is also possible outdated packages will be used temporarily until it's worth replacing them with active ones or, alternatively, update them ourselves.
