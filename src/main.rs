@@ -1,11 +1,13 @@
 mod content;
 mod content_manager;
 mod crypto;
+mod environment;
 mod error;
 mod influx_logger;
 mod peer;
 mod server;
 mod site;
+mod upnp;
 mod util;
 
 use std::fs::File;
@@ -18,19 +20,48 @@ use rand;
 use serde_json;
 use std::path::PathBuf;
 
-use pretty_env_logger;
-#[macro_use]
 use log::*;
+use pretty_env_logger;
+use peer::local_discovery::LocalDiscoveryServer;
 
 // curl "http://localhost:9999/api/v2/write?org=zerunet&bucket=zeronet&precision=s" \                        Fri 27 Sep 2019 23:57:24 CEST
 //      --header "Authorization: Token hgt8JHm1c6c9_rD_lumpXNEf1qCjVqyT13AOSzrlbZfhlKEIc5MaMfKgZq8H4w1wHDCsFICF-UGEI3Zok5OiMg==" \
 //      --data-raw "mem,host=host1 used_percent=27"
 
+const BROADCAST_PORT: usize = 1544;
+
 fn main() {
 	let data_path = PathBuf::from("/home/crolsi/Programs/ZeroNet/data/");
-	pretty_env_logger::init();
-
 	// influx_logger::init();
+	pretty_env_logger::init_timed();
+
+	environment::get_env();
+
+	if false {
+		let punch = upnp::UPnBrunch::new()
+			.unwrap()
+			.retries(3)
+			.add_protocol(upnp::Protocol::TCP);
+		if punch.open_port(15443, "ZeroNet").is_ok() {
+			info!("Port opened!");
+		} else {
+			error!("Failed to open port");
+		}
+		if punch.close_port(15443).is_ok() {
+			info!("Port closed!");
+		} else {
+			error!("Failed to close port");
+		}
+	}
+
+	std::thread::spawn(move || {
+		let lds = LocalDiscoveryServer::new(String::from("192.168.1.60"), BROADCAST_PORT).unwrap();
+		loop {
+			lds.broadcast();
+			lds.listen();
+		}
+	});
+
 
 	info!("Starting zerunet server.");
 	server::run();
