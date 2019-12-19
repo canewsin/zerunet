@@ -84,6 +84,17 @@ fn create_broadcast_socket(ip: &str, port: usize) -> Result<UdpSocket, Error> {
 
 impl LocalDiscoveryServer {
 	pub fn new(ip: String, port: usize) -> Result<LocalDiscoveryServer, Error> {
+		let mut local_ips = Vec::new();
+		for mut iface in pnet::datalink::interfaces() {
+			iface.ips.iter_mut().for_each(|ip| local_ips.push(*ip));
+		}
+		info!("Ips {:?}", &local_ips);
+		let prob_ip = local_ips.iter().find(|ip| ip.to_string().starts_with("192"));
+		if prob_ip.is_none() {
+			return Err(Error::MissingError);
+		}
+		let ip = prob_ip.unwrap().ip().to_string();
+		info!("Broadcasting on {}", &ip);
 		let socket = create_broadcast_socket(&ip, port)?;
 		let sender = Sender {
 			service: String::from("zeronet"),
