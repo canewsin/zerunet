@@ -1,4 +1,4 @@
-use actix::{Actor, Context};
+use actix::{prelude::*, Actor, Context};
 use log::*;
 use std::net::UdpSocket;
 use serde::{Serialize, Deserialize};
@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use serde_json::json;
 use derive_more::Display;
 use crate::error::Error;
+use crate::util::is_default;
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 #[serde(default)]
@@ -19,10 +20,19 @@ struct Sender {
 	ip: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
+#[serde(default)]
+struct Params {
+	sites_changed: usize,
+	sites: Vec<serde_bytes::ByteBuf>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+#[serde(default)]
 struct DiscoveryMessage {
-	params: HashMap<String, serde_json::Value>,
-	#[serde(default)]
+	#[serde(skip_serializing_if = "is_default")]
+	params: Params,
+	// params: HashMap<String, DiscoveryParam>,
 	sender: Sender,
 	// TODO: cmd should be an enum, but mrp does not
 	// serialize/deserialize those correctly
@@ -35,12 +45,12 @@ impl DiscoveryMessage {
 		DiscoveryMessage {
 			sender,
 			cmd: cmd.to_string(),
-			params: HashMap::new(),
+			params: Params::default(),
 		}
 	}
 	// Insert a parameter into the message
 	pub fn add_param(&mut self, name: &str, value: serde_json::Value) {
-		self.params.insert(name.to_string(), value);
+		// self.params.insert(name.to_string(), value);
 	}
 }
 
@@ -71,65 +81,107 @@ pub struct LocalDiscoveryServer {
 	sender: Sender,
 }
 
-fn create_broadcast_socket(ip: &str, port: usize) -> Result<UdpSocket, Error> {
-	let socket = match UdpSocket::bind(format!("{}:{}", ip, port)) {
-		Ok(s) => s,
-		Err(_) => {
-			error!("Error binding discovery socket");
-			return Err(Error::MissingError);
+pub struct BroadcastRequest{}
+
+impl Message for BroadcastRequest {
+	type Result = Result<(), Error>;
+}
+
+impl Actor for LocalDiscoveryServer {
+	type Context = Context<Self>;
+}
+
+impl Message for DiscoveryMessage {
+	type Result = Result<(), Error>;
+}
+
+impl Handler<DiscoveryMessage> for LocalDiscoveryServer {
+	type Result = Result<(), Error>;
+
+	fn handle(&mut self, msg: DiscoveryMessage, _ctx: &mut Context<Self>) -> Self::Result {
+		self.handle_message(msg)
+	}
+}
+
+impl Handler<BroadcastRequest> for LocalDiscoveryServer {
+	type Result = Result<(), Error>;
+
+	fn handle(&mut self, _msg: BroadcastRequest, _ctx: &mut Context<Self>) -> Self::Result {
+		trace!("handling broadcast request");
+		self.broadcast()
+	}
+}
+
+const BROADCAST_PORT: usize = 1544;
+
+pub fn start_local_discovery() -> Result<(), Error> {
+
+	let port = BROADCAST_PORT;
+	let mut local_ips = Vec::new();
+	for mut iface in pnet::datalink::interfaces() {
+		iface.ips.iter_mut().for_each(|ip| local_ips.push(*ip));
+	}
+	info!("Ips {:?}", &local_ips);
+	let prob_ip = local_ips.iter().find(|ip| ip.to_string().starts_with("192"));
+	if prob_ip.is_none() {
+		error!("Could not find local ip!");
+		return Err(Error::MissingError);
+	}
+	let ip = prob_ip.unwrap().ip().to_string();
+	trace!("Listening on {}:{}", &ip, port);
+	let socket = UdpSocket::bind(format!("{}:{}", &ip, port))?;
+
+	let system = actix::System::new("Local discovery server");
+	let lds = LocalDiscoveryServer::new(ip)?;
+	let discovery_addr = lds.start();
+
+	discovery_addr.do_send(BroadcastRequest{});
+
+	std::thread::spawn(move || {
+		loop {
+			match broadcast_listen(&socket) {
+				Ok(msg) => discovery_addr.do_send(msg),
+				Err(_) => {},
+			}
 		}
-	};
-	Ok(socket)
+	});
+
+	system.run(); // TODO: necessary?
+	Ok(())
+}
+
+fn broadcast_listen(socket: &UdpSocket) -> Result<DiscoveryMessage, Error> {
+	let mut buf = [0u8; 4800];
+	println!("Listening...");
+	let (amt, addr) = socket.recv_from(&mut buf).unwrap();
+	let filled_buf = &mut buf[..amt];
+
+	let vec = filled_buf.to_vec();
+	let mut msg: DiscoveryMessage = rmp_serde::from_read_ref(&vec)?;
+
+	msg.sender.ip = format!("{}", addr.ip());
+
+	Ok(msg)
 }
 
 impl LocalDiscoveryServer {
-	pub fn new(ip: String, port: usize) -> Result<LocalDiscoveryServer, Error> {
-		let mut local_ips = Vec::new();
-		for mut iface in pnet::datalink::interfaces() {
-			iface.ips.iter_mut().for_each(|ip| local_ips.push(*ip));
-		}
-		info!("Ips {:?}", &local_ips);
-		let prob_ip = local_ips.iter().find(|ip| ip.to_string().starts_with("192"));
-		if prob_ip.is_none() {
-			return Err(Error::MissingError);
-		}
-		let ip = prob_ip.unwrap().ip().to_string();
-		info!("Broadcasting on {}", &ip);
-		let socket = create_broadcast_socket(&ip, port)?;
+	pub fn new(ip: String) -> Result<LocalDiscoveryServer, Error> {
+		let socket = UdpSocket::bind(format!("{}:{}",&ip, BROADCAST_PORT+1))?;
 		let sender = Sender {
 			service: String::from("zeronet"),
 			// TODO: Bittorrent style id "-UT3530-%s" % CryptHash.random(12, "base64")
 			peer_id: String::from("-UT3530-0042118A1977"),
 			ip: ip.clone(),
 			port: 11692,
-			broadcast_port: port,
+			broadcast_port: BROADCAST_PORT,
 			rev: 4241,
 		};
 		Ok(LocalDiscoveryServer {
 			listen_ip: ip,
-			listen_port: port,
+			listen_port: BROADCAST_PORT,
 			socket,
 			sender,
 		})
-	}
-	pub fn listen(&self) -> Result<(), Error> {
-		let mut buf = [0u8; 1024];
-		println!("Listening...");
-		let (amt, addr) = self.socket.recv_from(&mut buf).unwrap();
-		let filled_buf = &mut buf[..amt];
-
-		let mut msg: DiscoveryMessage = rmp_serde::from_read_ref(&filled_buf.to_vec())?;
-
-		msg.sender.ip = format!("{}", addr.ip());
-
-		// if &msg.sender.service != "zeronet" {
-		// 	return Err(Error::MissingError);
-		// }
-		// if &msg.sender.peer_id == &self.sender.peer_id {
-		// 	return Err(Error::MissingError);
-		// }
-		self.handle_message(msg);
-		Ok(())
 	}
 	fn send(&self, addr: String, msg: DiscoveryMessage) -> Result<(), Error> {
 		info!("Sending {} message to {}", msg.cmd, addr);
@@ -139,37 +191,48 @@ impl LocalDiscoveryServer {
 	}
 	pub fn broadcast(&self) -> Result<(), Error> {
 		let msg = DiscoveryMessage::new(self.sender.clone(), LocalDiscoveryCommand::DiscoverRequest);
-		info!("Broadcasting {:?}", msg);
+		trace!("Broadcasting {:?}", msg);
 		let bytes = rmp_serde::to_vec_named(&msg)?;
+		let socket = UdpSocket::bind(format!("{}:{}", &self.listen_ip, 0))?;
+		socket.set_broadcast(true)?;
 		let addr = format!("255.255.255.255:{}", self.listen_port);
-		self.socket.send_to(&bytes, addr)?;
+		socket.send_to(&bytes, addr)?;
 		Ok(())
 	}
-	fn handle_message(&self, msg: DiscoveryMessage) {
-		println!("{:?}", msg);
-		match msg.cmd.as_str() {
+	fn handle_message(&self, msg: DiscoveryMessage) -> Result<(), Error> {
+		if &msg.sender.service != "zeronet" {
+			return Err(Error::MissingError);
+		}
+		if &msg.sender.peer_id == &self.sender.peer_id {
+			return Err(Error::MissingError);
+		}
+		info!("Incoming message {}", msg.cmd);
+		let addr = format!("{}:{}", &msg.sender.ip, &msg.sender.broadcast_port);
+		let response = match msg.cmd.as_str() {
 			"discoverRequest" => self.handle_discovery_request(msg),
 			"discoverResponse" => self.handle_discovery_response(msg),
-			"sitelistRequest" => self.handle_sitelist_request(msg),
-			"sitelistResponse" => self.handle_sitelist_response(msg),
-			_ => {},
-		}
+			"siteListRequest" => self.handle_sitelist_request(msg),
+			"siteListResponse" => self.handle_sitelist_response(msg),
+			_ => return Err(Error::MissingError),
+		}?;
+		self.send(addr, response)
 	}
-	fn handle_discovery_request(&self, msg: DiscoveryMessage) {
-		let addr = format!("{}:{}", &msg.sender.ip, &msg.sender.broadcast_port);
-
+	fn handle_discovery_request(&self, msg: DiscoveryMessage) -> Result<DiscoveryMessage, Error> {
 		let sites_changed: Vec<String> = vec![];
 		let mut resp = DiscoveryMessage::new(self.sender.clone(), LocalDiscoveryCommand::DiscoverResponse);
 		resp.add_param("sites_changed", json!(sites_changed));
-		self.send(addr, resp);
+		Ok(resp)
 	}
-	fn handle_discovery_response(&self, msg: DiscoveryMessage) {
-		let addr = format!("{}:{}", &msg.sender.ip, &msg.sender.broadcast_port);
+	fn handle_discovery_response(&self, msg: DiscoveryMessage) -> Result<DiscoveryMessage, Error> {
+		let resp = DiscoveryMessage::new(self.sender.clone(), LocalDiscoveryCommand::SiteListRequest);
+		Ok(resp)
 	}
-	fn handle_sitelist_request(&self, msg: DiscoveryMessage) {
-		let addr = format!("{}:{}", &msg.sender.ip, &msg.sender.broadcast_port);
+	fn handle_sitelist_request(&self, msg: DiscoveryMessage) -> Result<DiscoveryMessage, Error> {
+		let resp = DiscoveryMessage::new(self.sender.clone(), LocalDiscoveryCommand::SiteListResponse);
+		Ok(resp)
 	}
-	fn handle_sitelist_response(&self, msg: DiscoveryMessage) {
-		let addr = format!("{}:{}", &msg.sender.ip, &msg.sender.broadcast_port);
+	fn handle_sitelist_response(&self, msg: DiscoveryMessage) -> Result<DiscoveryMessage, Error> {
+		info!("{:?}", msg.params.sites[0]);
+		Err(Error::MissingError)
 	}
 }
