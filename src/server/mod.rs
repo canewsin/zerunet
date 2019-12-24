@@ -1,4 +1,4 @@
-use actix::Actor;
+use actix::{Actor, Addr};
 use actix_web::{
 	web::{get, Data, Query},
 	App, HttpRequest, HttpResponse, HttpServer, Responder, Result,
@@ -28,15 +28,12 @@ fn index() -> Result<String> {
 	Ok(format!("Welcome!"))
 }
 
-pub fn run() {
-	let system = actix::System::new("Site manager");
-	let site_manager = SiteManager::new();
-	let addr = site_manager.start();
+pub fn run(site_manager: Addr<SiteManager>) {
 	let nonces = Arc::new(Mutex::new(HashSet::new()));
 
 	HttpServer::new(move || {
 		let shared_data = Data::new(ZeroServer {
-			site_manager: addr.clone(),
+			site_manager: site_manager.clone(),
 			wrapper_nonces: nonces.clone(),
 		});
 		App::new()

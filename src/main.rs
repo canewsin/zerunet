@@ -23,6 +23,8 @@ use std::path::PathBuf;
 use log::*;
 use pretty_env_logger;
 use peer::local_discovery::start_local_discovery;
+use site::site_manager::SiteManager;
+use actix::Actor;
 
 // curl "http://localhost:9999/api/v2/write?org=zerunet&bucket=zeronet&precision=s" \                        Fri 27 Sep 2019 23:57:24 CEST
 //      --header "Authorization: Token hgt8JHm1c6c9_rD_lumpXNEf1qCjVqyT13AOSzrlbZfhlKEIc5MaMfKgZq8H4w1wHDCsFICF-UGEI3Zok5OiMg==" \
@@ -53,11 +55,16 @@ fn main() {
 		}
 	}
 
-	let res = start_local_discovery();
+	let system = actix::System::new("Site manager");
+
+	let site_manager = SiteManager::new();
+	let site_manager_addr = site_manager.start();
+
+	let res = start_local_discovery(site_manager_addr.clone());
 	info!("{:?}", res);
 
 	info!("Starting zerunet server.");
-	server::run();
+	server::run(site_manager_addr);
 
 	let content_path = Path::new("test/content.json");
 	let file = match File::open(content_path) {

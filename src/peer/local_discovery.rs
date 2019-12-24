@@ -7,6 +7,7 @@ use serde_json::json;
 use derive_more::Display;
 use crate::error::Error;
 use crate::util::is_default;
+use crate::site::site_manager::SiteManager;
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 #[serde(default)]
@@ -31,8 +32,8 @@ struct Params {
 #[serde(default)]
 struct DiscoveryMessage {
 	#[serde(skip_serializing_if = "is_default")]
-	params: Params,
-	// params: HashMap<String, DiscoveryParam>,
+	// params: Params,
+	params: HashMap<String, serde_json::Value>,
 	sender: Sender,
 	// TODO: cmd should be an enum, but mrp does not
 	// serialize/deserialize those correctly
@@ -45,7 +46,8 @@ impl DiscoveryMessage {
 		DiscoveryMessage {
 			sender,
 			cmd: cmd.to_string(),
-			params: Params::default(),
+			// params: Params::default(),
+			params: HashMap::new(),
 		}
 	}
 	// Insert a parameter into the message
@@ -72,13 +74,6 @@ impl ToString for LocalDiscoveryCommand {
 			SiteListResponse => "siteListResponse",
 		}.to_string()
 	}
-}
-
-pub struct LocalDiscoveryServer {
-	listen_port: usize,
-	listen_ip: String,
-	socket: UdpSocket,
-	sender: Sender,
 }
 
 pub struct BroadcastRequest{}
@@ -114,8 +109,7 @@ impl Handler<BroadcastRequest> for LocalDiscoveryServer {
 
 const BROADCAST_PORT: usize = 1544;
 
-pub fn start_local_discovery() -> Result<(), Error> {
-
+pub fn start_local_discovery(site_manager: Addr<SiteManager>) -> Result<(), Error> {
 	let port = BROADCAST_PORT;
 	let mut local_ips = Vec::new();
 	for mut iface in pnet::datalink::interfaces() {
@@ -132,7 +126,7 @@ pub fn start_local_discovery() -> Result<(), Error> {
 	let socket = UdpSocket::bind(format!("{}:{}", &ip, port))?;
 
 	let system = actix::System::new("Local discovery server");
-	let lds = LocalDiscoveryServer::new(ip)?;
+	let lds = LocalDiscoveryServer::new(ip, site_manager)?;
 	let discovery_addr = lds.start();
 
 	discovery_addr.do_send(BroadcastRequest{});
@@ -151,21 +145,26 @@ pub fn start_local_discovery() -> Result<(), Error> {
 }
 
 fn broadcast_listen(socket: &UdpSocket) -> Result<DiscoveryMessage, Error> {
-	let mut buf = [0u8; 4800];
+	let mut buf = [0u8; 4800]; // = 32bytes * 100sites + 1600reserve
 	println!("Listening...");
 	let (amt, addr) = socket.recv_from(&mut buf).unwrap();
 	let filled_buf = &mut buf[..amt];
-
 	let vec = filled_buf.to_vec();
 	let mut msg: DiscoveryMessage = rmp_serde::from_read_ref(&vec)?;
-
 	msg.sender.ip = format!("{}", addr.ip());
-
 	Ok(msg)
 }
 
+pub struct LocalDiscoveryServer {
+	listen_port: usize,
+	listen_ip: String,
+	socket: UdpSocket,
+	sender: Sender,
+	site_manager: Addr<SiteManager>,
+}
+
 impl LocalDiscoveryServer {
-	pub fn new(ip: String) -> Result<LocalDiscoveryServer, Error> {
+	pub fn new(ip: String, site_manager: Addr<SiteManager>) -> Result<LocalDiscoveryServer, Error> {
 		let socket = UdpSocket::bind(format!("{}:{}",&ip, BROADCAST_PORT+1))?;
 		let sender = Sender {
 			service: String::from("zeronet"),
@@ -181,6 +180,7 @@ impl LocalDiscoveryServer {
 			listen_port: BROADCAST_PORT,
 			socket,
 			sender,
+			site_manager,
 		})
 	}
 	fn send(&self, addr: String, msg: DiscoveryMessage) -> Result<(), Error> {
@@ -232,7 +232,7 @@ impl LocalDiscoveryServer {
 		Ok(resp)
 	}
 	fn handle_sitelist_response(&self, msg: DiscoveryMessage) -> Result<DiscoveryMessage, Error> {
-		info!("{:?}", msg.params.sites[0]);
+		info!("{:?}", msg.params);
 		Err(Error::MissingError)
 	}
 }

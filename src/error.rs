@@ -8,7 +8,7 @@ pub enum Error {
 	MissingError,
 	ReqwestError,
 	MsgPackEncoding,
-	MsgPackDecoding,
+	MsgPackDecoding(rmp_serde::decode::Error),
 }
 
 impl From<reqwest::Error> for Error {
@@ -46,7 +46,7 @@ impl From<rmp_serde::encode::Error> for Error {
 impl From<rmp_serde::decode::Error> for Error {
 	fn from(error: rmp_serde::decode::Error) -> Error {
 		match error {
-			_ => Error::MsgPackDecoding,
+			_ => Error::MsgPackDecoding(error),
 		}
 	}
 }
