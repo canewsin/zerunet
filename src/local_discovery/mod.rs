@@ -4,11 +4,8 @@ mod message;
 use actix::{prelude::*, Actor, Context};
 use log::*;
 use std::net::UdpSocket;
-use serde::{Serialize, Deserialize};
 use serde_json::json;
-use std::collections::HashMap;
 
-use crate::util::is_default;
 use crate::site::site_manager::SiteManager;
 
 use error::Error;
@@ -125,7 +122,7 @@ impl LocalDiscoveryServer {
 			site_manager,
 		})
 	}
-	fn send(&self, addr: String, msg: DiscoveryMessage) -> Result<(), Error> {
+	fn send(&self, addr: &str, msg: DiscoveryMessage) -> Result<(), Error> {
 		info!("Sending {} message to {}", msg.cmd, addr);
 		let bytes = rmp_serde::to_vec_named(&msg)?;
 		self.socket.send_to(&bytes, addr)?;
@@ -158,33 +155,33 @@ impl LocalDiscoveryServer {
 			_ => return Err(Error::UnknownDiscoveryCommand),
 		}?;
 
-		match response {
-			Some(resp) => self.send(addr, resp),
-			None => Ok(()),
+		for resp in response {
+			self.send(&addr, resp)?;
 		}
+		Ok(())
 	}
-	fn handle_discovery_request(&self, msg: DiscoveryMessage) -> Result<Option<DiscoveryMessage>, Error> {
+	fn handle_discovery_request(&self, msg: DiscoveryMessage) -> Result<Vec<DiscoveryMessage>, Error> {
 		let sites_changed: Vec<String> = vec![];
 		let mut resp = DiscoveryMessage::new(self.sender.clone(), LocalDiscoveryCommand::DiscoverResponse);
 		// TODO:: implement discovery
 		// get date sites last updated
 		resp.add_param("sites_changed", json!(sites_changed));
-		Ok(Some(resp))
+		Ok(vec![resp])
 	}
-	fn handle_discovery_response(&self, msg: DiscoveryMessage) -> Result<Option<DiscoveryMessage>, Error> {
+	fn handle_discovery_response(&self, msg: DiscoveryMessage) -> Result<Vec<DiscoveryMessage>, Error> {
 		let resp = DiscoveryMessage::new(self.sender.clone(), LocalDiscoveryCommand::SiteListRequest);
-		Ok(Some(resp))
+		Ok(vec![resp])
 	}
-	fn handle_sitelist_request(&self, msg: DiscoveryMessage) -> Result<Option<DiscoveryMessage>, Error> {
+	fn handle_sitelist_request(&self, msg: DiscoveryMessage) -> Result<Vec<DiscoveryMessage>, Error> {
 		let resp = DiscoveryMessage::new(self.sender.clone(), LocalDiscoveryCommand::SiteListResponse);
 		// TODO: implement sitelist
 		// get sites and send them in bunches of 100
-		Ok(Some(resp))
+		Ok(vec![resp])
 	}
-	fn handle_sitelist_response(&self, msg: DiscoveryMessage) -> Result<Option<DiscoveryMessage>, Error> {
+	fn handle_sitelist_response(&self, msg: DiscoveryMessage) -> Result<Vec<DiscoveryMessage>, Error> {
 		info!("SiteListResponse from {:?}", msg.sender.peer_id);
 		// TODO: implement sitelist
 		// add peer to peer manager
-		Ok(None)
+		Ok(vec![])
 	}
 }
