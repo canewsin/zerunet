@@ -9,6 +9,7 @@ mod server;
 mod site;
 mod upnp;
 mod util;
+mod local_discovery;
 
 use std::fs::File;
 use std::io::prelude::*;
@@ -22,7 +23,7 @@ use std::path::PathBuf;
 
 use log::*;
 use pretty_env_logger;
-use peer::local_discovery::start_local_discovery;
+use local_discovery::start_local_discovery;
 use site::site_manager::SiteManager;
 use actix::Actor;
 
