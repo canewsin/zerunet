@@ -66,6 +66,35 @@ impl Handler<Lookup> for SiteManager {
 	}
 }
 
+pub struct SitesChangedRequest {}
+
+impl Message for SitesChangedRequest {
+	type Result = Result<usize, Error>;
+}
+
+impl Handler<SitesChangedRequest> for SiteManager {
+	type Result = Result<usize, Error>;
+
+	fn handle(&mut self, _msg: SitesChangedRequest, _ctx: &mut Context<Self>) -> Self::Result {
+		// TODO: actually return date of change
+		Ok(0)
+	}
+}
+
+pub struct SiteListRequest {}
+
+impl Message for SiteListRequest {
+	type Result = Result<Vec<serde_bytes::ByteBuf>, Error>;
+}
+
+impl Handler<SiteListRequest> for SiteManager {
+	type Result = Result<Vec<serde_bytes::ByteBuf>, Error>;
+
+	fn handle(&mut self, _msg: SiteListRequest, _ctx: &mut Context<Self>) -> Self::Result {
+		Ok(self.sites.iter().map(|(key, _)| serde_bytes::ByteBuf::from(key.get_address_hash())).collect())
+	}
+}
+
 pub struct As {
 	address: Address,
 	command: crate::server::websocket::request::Command,

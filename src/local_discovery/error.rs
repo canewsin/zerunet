@@ -9,6 +9,8 @@ pub enum Error {
 	IncompatibleService,
 	SenderSamePeerID,
 	UnknownDiscoveryCommand,
+	CouldNotGetSiteList,
+	CouldNotGetSitesChanged,
 }
 
 impl From<std::io::Error> for Error {

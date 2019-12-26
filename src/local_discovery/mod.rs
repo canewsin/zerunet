@@ -76,7 +76,7 @@ pub fn start_local_discovery(site_manager: Addr<SiteManager>) -> Result<(), Erro
 		}
 	});
 
-	system.run(); // TODO: necessary?
+	system.run()?; // TODO: necessary?
 	Ok(())
 }
 
@@ -146,39 +146,49 @@ impl LocalDiscoveryServer {
 			return Err(Error::SenderSamePeerID);
 		}
 		info!("Incoming message {}", msg.cmd);
-		let addr = format!("{}:{}", &msg.sender.ip, &msg.sender.broadcast_port);
 		let response = match msg.cmd.as_str() {
-			"discoverRequest" => self.handle_discovery_request(msg),
-			"discoverResponse" => self.handle_discovery_response(msg),
-			"siteListRequest" => self.handle_sitelist_request(msg),
-			"siteListResponse" => self.handle_sitelist_response(msg),
+			"discoverRequest" => self.handle_discovery_request(&msg),
+			"discoverResponse" => self.handle_discovery_response(&msg),
+			"siteListRequest" => self.handle_sitelist_request(&msg),
+			"siteListResponse" => self.handle_sitelist_response(&msg),
 			_ => return Err(Error::UnknownDiscoveryCommand),
 		}?;
 
+		let addr = format!("{}:{}", &msg.sender.ip, &msg.sender.broadcast_port);
 		for resp in response {
 			self.send(&addr, resp)?;
 		}
 		Ok(())
 	}
-	fn handle_discovery_request(&self, msg: DiscoveryMessage) -> Result<Vec<DiscoveryMessage>, Error> {
+	fn handle_discovery_request(&self, msg: &DiscoveryMessage) -> Result<Vec<DiscoveryMessage>, Error> {
 		let sites_changed: Vec<String> = vec![];
 		let mut resp = DiscoveryMessage::new(self.sender.clone(), LocalDiscoveryCommand::DiscoverResponse);
 		// TODO:: implement discovery
 		// get date sites last updated
-		resp.add_param("sites_changed", json!(sites_changed));
+		let sites_changed = match self.site_manager.send(crate::site::site_manager::SitesChangedRequest{}).wait() {
+			Ok(c) => c.unwrap(),
+			Err(_) => return Err(Error::CouldNotGetSitesChanged),
+		};
+		resp.params.sites_changed = sites_changed;
 		Ok(vec![resp])
 	}
-	fn handle_discovery_response(&self, msg: DiscoveryMessage) -> Result<Vec<DiscoveryMessage>, Error> {
+	fn handle_discovery_response(&self, msg: &DiscoveryMessage) -> Result<Vec<DiscoveryMessage>, Error> {
 		let resp = DiscoveryMessage::new(self.sender.clone(), LocalDiscoveryCommand::SiteListRequest);
 		Ok(vec![resp])
 	}
-	fn handle_sitelist_request(&self, msg: DiscoveryMessage) -> Result<Vec<DiscoveryMessage>, Error> {
-		let resp = DiscoveryMessage::new(self.sender.clone(), LocalDiscoveryCommand::SiteListResponse);
+	fn handle_sitelist_request(&self, msg: &DiscoveryMessage) -> Result<Vec<DiscoveryMessage>, Error> {
+		let mut resp = DiscoveryMessage::new(self.sender.clone(), LocalDiscoveryCommand::SiteListResponse);
+		let sites = match self.site_manager.send(crate::site::site_manager::SiteListRequest{}).wait() {
+			Ok(s) => s.unwrap(),
+			Err(_) => return Err(Error::CouldNotGetSiteList),
+		};
+		info!("Sites: {}", sites.len());
+		resp.params.sites = sites;
 		// TODO: implement sitelist
 		// get sites and send them in bunches of 100
 		Ok(vec![resp])
 	}
-	fn handle_sitelist_response(&self, msg: DiscoveryMessage) -> Result<Vec<DiscoveryMessage>, Error> {
+	fn handle_sitelist_response(&self, msg: &DiscoveryMessage) -> Result<Vec<DiscoveryMessage>, Error> {
 		info!("SiteListResponse from {:?}", msg.sender.peer_id);
 		// TODO: implement sitelist
 		// add peer to peer manager
