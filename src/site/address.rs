@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::cmp::{Eq, PartialEq};
 use std::fmt::Display;
 use std::hash::Hash;
+use sha2::{Digest, Sha256};
 
 #[derive(Serialize, Deserialize, Hash, PartialEq, Eq, Debug, Clone)]
 pub struct Address {
@@ -30,8 +31,10 @@ impl Address {
 		})
 	}
 	// digest of Sha256 hash of ASCII encoding
-	pub fn get_address_hash(&self) -> String {
-		self.address.clone()
+	pub fn get_address_hash(&self) -> Vec<u8> {
+		let mut hasher = Sha256::default();
+		hasher.input(&self.address);
+		hasher.result().to_vec()
 	}
 	// digest of Sha1 hash of ACII encoding
 	pub fn get_address_sha1(&self) -> String {
