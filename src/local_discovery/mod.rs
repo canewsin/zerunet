@@ -49,15 +49,15 @@ pub fn start_local_discovery(site_manager: Addr<SiteManager>) -> Result<(), Erro
 	let port = BROADCAST_PORT;
 	let mut local_ips = Vec::new();
 	for mut iface in pnet::datalink::interfaces() {
-		iface.ips.iter_mut().for_each(|ip| local_ips.push(*ip));
+		iface.ips.iter_mut().for_each(|ip| local_ips.push(ip.ip().to_string()));
 	}
 	info!("Ips {:?}", &local_ips);
-	let prob_ip = local_ips.iter().find(|ip| ip.to_string().starts_with("192"));
+	let prob_ip = local_ips.iter().find(|ip| ip.starts_with("192.168.1"));
 	if prob_ip.is_none() {
 		error!("Could not find local ip!");
 		return Err(Error::ErrorFindingIP);
 	}
-	let ip = prob_ip.unwrap().ip().to_string();
+	let ip = prob_ip.unwrap();
 	trace!("Listening on {}:{}", &ip, port);
 	let socket = UdpSocket::bind(format!("{}:{}", &ip, port))?;
 
@@ -100,8 +100,8 @@ pub struct LocalDiscoveryServer {
 }
 
 impl LocalDiscoveryServer {
-	pub fn new(ip: String, site_manager: Addr<SiteManager>) -> Result<LocalDiscoveryServer, Error> {
-		let socket = UdpSocket::bind(format!("{}:{}",&ip, BROADCAST_PORT+1))?;
+	pub fn new(ip: &str, site_manager: Addr<SiteManager>) -> Result<LocalDiscoveryServer, Error> {
+		let socket = UdpSocket::bind(format!("{}:{}", ip, BROADCAST_PORT+1))?;
 		let vec: Vec<u8> = (0..12).map(|_| rand::random::<u8>()).collect();
 		// TODO: Bittorrent style id "-UT3530-%s" % CryptHash.random(12, "base64")
 		let peer_id = format!("-UT3530-{}", base64::encode(&vec));
@@ -109,13 +109,13 @@ impl LocalDiscoveryServer {
 		let sender = Sender {
 			service: String::from("zeronet"),
 			peer_id,
-			ip: ip.clone(),
+			ip: String::from(ip),
 			port: 11692,
 			broadcast_port: BROADCAST_PORT,
 			rev: 4241,
 		};
 		Ok(LocalDiscoveryServer {
-			listen_ip: ip,
+			listen_ip: String::from(ip),
 			listen_port: BROADCAST_PORT,
 			socket,
 			sender,
