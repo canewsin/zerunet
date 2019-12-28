@@ -169,7 +169,7 @@ impl LocalDiscoveryServer {
 			Ok(c) => c.unwrap(),
 			Err(_) => return Err(Error::CouldNotGetSitesChanged),
 		};
-		resp.params.sites_changed = sites_changed;
+		resp.params.sites_changed = sites_changed.timestamp();
 		Ok(vec![resp])
 	}
 	fn handle_discovery_response(&self, msg: &DiscoveryMessage) -> Result<Vec<DiscoveryMessage>, Error> {

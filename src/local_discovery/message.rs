@@ -20,7 +20,7 @@ pub struct Sender {
 #[serde(default)]
 pub struct Params {
 	#[serde(skip_serializing_if = "is_default")]
-	pub sites_changed: usize,
+	pub sites_changed: i64,
 	#[serde(skip_serializing_if = "is_default")]
 	pub sites: Vec<serde_bytes::ByteBuf>,
 }

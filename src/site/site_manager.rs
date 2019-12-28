@@ -3,10 +3,12 @@ use crate::error::Error;
 use actix::{prelude::*, Actor, Addr};
 use log::*;
 use std::collections::HashMap;
+use chrono::{DateTime, Utc};
 
 pub struct SiteManager {
 	sites: HashMap<Address, Addr<Site>>,
 	nonce: HashMap<String, Address>,
+	updated_at: DateTime<Utc>,
 }
 
 impl SiteManager {
@@ -14,6 +16,7 @@ impl SiteManager {
 		SiteManager {
 			sites: HashMap::new(),
 			nonce: HashMap::new(),
+			updated_at: Utc::now(),
 		}
 	}
 	pub fn get(&mut self, address: Address) -> Result<(Address, Addr<Site>), Error> {
@@ -27,6 +30,7 @@ impl SiteManager {
 			let site = Site::new();
 			let addr = site.start();
 			self.sites.insert(address.clone(), addr.clone());
+			self.updated_at = Utc::now();
 			Ok((address, addr))
 		}
 	}
@@ -69,15 +73,14 @@ impl Handler<Lookup> for SiteManager {
 pub struct SitesChangedRequest {}
 
 impl Message for SitesChangedRequest {
-	type Result = Result<usize, Error>;
+	type Result = Result<DateTime<Utc>, Error>;
 }
 
 impl Handler<SitesChangedRequest> for SiteManager {
-	type Result = Result<usize, Error>;
+	type Result = Result<DateTime<Utc>, Error>;
 
 	fn handle(&mut self, _msg: SitesChangedRequest, _ctx: &mut Context<Self>) -> Self::Result {
-		// TODO: actually return date of change
-		Ok(0)
+		Ok(self.updated_at)
 	}
 }
 
