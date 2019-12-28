@@ -2,7 +2,7 @@ mod content_db;
 use super::content::Content;
 use crate::error::Error;
 use content_db::ContentDb;
-use log::{error, info, trace};
+use log::*;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
