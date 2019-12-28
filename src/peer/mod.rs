@@ -1,11 +1,12 @@
+mod connections;
+
 use crate::site::address::Address;
 use ipnetwork::IpNetwork;
 use std::time::{Duration, SystemTime};
+use actix::{prelude::*, Actor};
 
-pub trait Connection {}
-
-pub struct Peer<T: Connection> {
-	connection: T,
+pub struct Peer {
+	// connection: T,
 	ip: IpNetwork,
 	port: usize,
 	site: Address,
@@ -20,4 +21,12 @@ pub struct Peer<T: Connection> {
 	errors: usize,
 }
 
+impl Actor for Peer {
+	type Context = Context<Self>;
+}
+
 pub struct PeerMessage {}
+
+impl Message for PeerMessage {
+	type Result = Result<(), ()>;
+}
