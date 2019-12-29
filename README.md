@@ -12,7 +12,17 @@ In the current state of development, getting a working prototype is the number o
 
 ## Why do we need another ZeroNet?
 - Rust is compiled to assembly for maximum efficiency
-- A solid rust implementation should be less error-prone
+- Unlike Python, Rust has been designed with concurrency in mind,
+  this means it will be able to run in multiple threads, reducing
+  zite lag when doing many things in the backend.
+- Rust has one of the best web server libraries: Actix, and a lot
+  of what ZeroNet does is web serving. Actix is also an actor
+  framework, and zerunet will be build using the actor model.
+- A solid Rust implementation should be less error-prone
+- There's a lot of features I'd like to see in ZeroNet:
+  - I2P, LokiNet support
+  - IPFS, RetroShare, GnuNet or even Freenet integration
+  When porting ZeroNet to Rust, I'll keep these in mind when structuring my code.
 
 ## Code of Conduct
 Code of Conducts are for wussies, anyone is welcome to contribute to zerunet or use it in any way they deem useful. We do not care what crimes, fictitious or real, anyone is accused of having committed.
