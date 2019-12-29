@@ -4,6 +4,7 @@ use actix::{prelude::*, Actor, Addr};
 use log::*;
 use std::collections::HashMap;
 use chrono::{DateTime, Utc};
+use crate::peer::Peer;
 
 pub struct SiteManager {
 	sites: HashMap<Address, Addr<Site>>,
@@ -143,6 +144,35 @@ impl Handler<AddWrapperKey> for SiteManager {
 			msg.wrapper_key,
 			msg.address.get_address_short()
 		);
+		Ok(())
+	}
+}
+
+pub struct AddPeer {
+	pub peer_id: String,
+	pub peer_addr: Addr<Peer>,
+	pub sites: Vec<Vec<u8>>,
+}
+
+impl Message for AddPeer {
+	type Result = Result<(), ()>;
+}
+
+impl Handler<AddPeer> for SiteManager {
+	type Result = Result<(), ()>;
+	
+	fn handle(&mut self, msg: AddPeer, _ctx: &mut Context<Self>) -> Self::Result {
+		for (address, addr) in self.sites.iter_mut() {
+			let hash = address.get_address_hash();
+			for site in msg.sites.iter() {
+				if hash == *site {
+					addr.do_send(crate::site::AddPeer{
+						peer_id: msg.peer_id.clone(),
+						peer_addr: msg.peer_addr.clone(),
+					})
+				}
+			}
+		}
 		Ok(())
 	}
 }

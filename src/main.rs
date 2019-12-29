@@ -25,6 +25,7 @@ use log::*;
 use pretty_env_logger;
 use local_discovery::start_local_discovery;
 use site::site_manager::SiteManager;
+use peer::peer_manager::PeerManager;
 use actix::Actor;
 
 // curl "http://localhost:9999/api/v2/write?org=zerunet&bucket=zeronet&precision=s" \                        Fri 27 Sep 2019 23:57:24 CEST
@@ -60,8 +61,11 @@ fn main() {
 
 	let site_manager = SiteManager::new();
 	let site_manager_addr = site_manager.start();
+	site_manager_addr.do_send(crate::site::site_manager::Lookup::Address(crate::site::address::Address::from_str("1HeLLo4uzjaLetFx6NH3PMwFP3qbRbTf3D").unwrap()));
+	let peer_manager = PeerManager::new(site_manager_addr.clone());
+	let peer_manager_addr = peer_manager.start();
 
-	let res = start_local_discovery(site_manager_addr.clone());
+	let res = start_local_discovery(site_manager_addr.clone(), peer_manager_addr);
 	info!("{:?}", res);
 
 	info!("Starting zerunet server.");
