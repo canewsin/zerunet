@@ -9,6 +9,10 @@ edition = "2018"
 [dependencies]
 serde_json = "*"
 serde = { version = "*", features = ["derive"] }
+rmp-serde = "*"
+rmp = "*"
+serde_bytes = "*"
+json_filter_sorted = { path = "json_filter_sorted" }
 signatory = { version = "0.13", features = ["ecdsa"] }
 signatory-ring = "0.13"
 bitcoin = "*"
@@ -19,9 +23,9 @@ rand = { version = "0.6.5", features = ["rand_os"] }
 sha2 = "*"
 hex = "*"
 basex-rs = "0.1.1"
-json_filter_sorted = { path = "json_filter_sorted" }
 log = "0.4"
 pretty_env_logger = "0.3"
+env_logger = "0.6.2"
 # rusqlite = "*"
 actix = "*"
 actix-web = "*"
@@ -31,7 +35,6 @@ actix-http = "*"
 derive_more = "*"
 i2p = { git = "https://github.com/i2p/i2p-rs" }
 reqwest = "*"
-env_logger = "0.6.2"
 pulldown-cmark = "*"
 futures = "*"
 uuid = { version = "0.8", features = ["serde", "v4"] }
@@ -40,7 +43,4 @@ quick-xml = "0.17"
 pnet = "*"
 ipnetwork = "*"
 clap = "*"
-rmp-serde = "*"
-rmp = "*"
-serde_bytes = "*"
 chrono = "*"
