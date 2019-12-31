@@ -17,8 +17,8 @@ impl ContentManager {
 	// loads all content.json files for site
 	pub fn load_contents() {
 		info!("Initializing ")
+		// TODO: load contents
 	}
-
 	// pub fn get_file_changes()
 	pub fn load_content(&mut self, inner_path: PathBuf) -> Result<(), Error> {
 		let content_path = self.path.join(Path::new(&self.site)).join(&inner_path);
@@ -34,6 +34,7 @@ impl ContentManager {
 		return Ok(());
 		// let old_content = self.db.get(inner_path);
 	}
+	// TODO: implement remaining functions
 	// pub fn remove_content()
 	// pub fn get_total_size()
 	// pub fn list_modified()

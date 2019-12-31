@@ -1,9 +1,9 @@
+use super::Peer;
 use crate::error::Error;
+use crate::site::site_manager::SiteManager;
 use actix::{prelude::*, Actor, Addr};
 use log::*;
 use std::collections::HashMap;
-use super::Peer;
-use crate::site::site_manager::SiteManager;
 
 pub struct PeerID(String);
 
@@ -70,11 +70,13 @@ impl Handler<UpdatePeer> for PeerManager {
 
 	fn handle(&mut self, msg: UpdatePeer, _ctx: &mut Context<Self>) -> Self::Result {
 		let addr = self.get(msg.peer_id.clone())?;
-		self.site_manager.do_send(crate::site::site_manager::AddPeer{
-			peer_id: msg.peer_id,
-			peer_addr: addr,
-			sites: msg.sites,
-		});
+		self
+			.site_manager
+			.do_send(crate::site::site_manager::AddPeer {
+				peer_id: msg.peer_id,
+				peer_addr: addr,
+				sites: msg.sites,
+			});
 		Ok(())
 	}
 }

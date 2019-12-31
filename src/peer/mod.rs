@@ -2,9 +2,9 @@ mod connections;
 pub mod peer_manager;
 
 use crate::site::address::Address;
-use ipnetwork::IpNetwork;
-use chrono::{DateTime, Utc, Duration};
 use actix::{prelude::*, Actor};
+use chrono::{DateTime, Duration, Utc};
+use ipnetwork::IpNetwork;
 
 pub struct Peer {
 	// connection: T,

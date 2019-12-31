@@ -10,7 +10,6 @@ use include::Include;
 use user_contents::UserContents;
 
 use crate::util::is_default;
-use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;

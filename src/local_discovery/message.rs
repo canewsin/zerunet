@@ -1,5 +1,4 @@
-
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::util::is_default;
@@ -33,7 +32,7 @@ pub struct DiscoveryMessage {
 	pub sender: Sender,
 	// TODO: cmd should be an enum, but mrp does not
 	// serialize/deserialize those correctly
-	pub cmd: String, 
+	pub cmd: String,
 }
 
 use LocalDiscoveryCommand::*;
@@ -67,6 +66,7 @@ impl ToString for LocalDiscoveryCommand {
 			SiteListRequest => "siteListRequest",
 			DiscoverResponse => "discoverResponse",
 			SiteListResponse => "siteListResponse",
-		}.to_string()
+		}
+		.to_string()
 	}
 }
