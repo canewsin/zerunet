@@ -4,37 +4,37 @@ mod crypto;
 mod environment;
 mod error;
 mod influx_logger;
+mod local_discovery;
 mod peer;
 mod server;
 mod site;
 mod upnp;
 mod util;
-mod local_discovery;
 
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::path::Path;
+use std::str::FromStr;
 
 use crypto::zerusign;
 use rand;
 use serde_json;
 use std::path::PathBuf;
 
-use log::*;
-use pretty_env_logger;
-use local_discovery::start_local_discovery;
-use site::site_manager::SiteManager;
-use peer::peer_manager::PeerManager;
 use actix::Actor;
+use local_discovery::start_local_discovery;
+use log::*;
+use peer::peer_manager::PeerManager;
+use pretty_env_logger;
+use site::site_manager::SiteManager;
 
 // curl "http://localhost:9999/api/v2/write?org=zerunet&bucket=zeronet&precision=s" \                        Fri 27 Sep 2019 23:57:24 CEST
 //      --header "Authorization: Token hgt8JHm1c6c9_rD_lumpXNEf1qCjVqyT13AOSzrlbZfhlKEIc5MaMfKgZq8H4w1wHDCsFICF-UGEI3Zok5OiMg==" \
 //      --data-raw "mem,host=host1 used_percent=27"
 
-
 fn main() {
-	let data_path = PathBuf::from("/home/crolsi/Programs/ZeroNet/data/");
+	let data_path = PathBuf::from("../ZeroNet/data/");
 	// influx_logger::init();
 	pretty_env_logger::init_timed();
 
@@ -59,9 +59,11 @@ fn main() {
 
 	let system = actix::System::new("Site manager");
 
+	info!("Starting site manager.");
 	let site_manager = SiteManager::new();
 	let site_manager_addr = site_manager.start();
-	site_manager_addr.do_send(crate::site::site_manager::Lookup::Address(crate::site::address::Address::from_str("1HeLLo4uzjaLetFx6NH3PMwFP3qbRbTf3D").unwrap()));
+
+	info!("Starting peer manager.");
 	let peer_manager = PeerManager::new(site_manager_addr.clone());
 	let peer_manager_addr = peer_manager.start();
 

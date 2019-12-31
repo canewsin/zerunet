@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum CommandType {
 	// API
@@ -76,6 +76,12 @@ pub enum CommandType {
 	SiteList,
 	SitePause,
 	SiteResume,
+
+	ServerErrors,
+	UserGetSettings,
+	UserSetSettings,
+	AnnouncerStats,
+	SiteSetLimit,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

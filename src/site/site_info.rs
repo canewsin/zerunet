@@ -4,33 +4,34 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
 pub struct SiteInfo {
 	pub tasks: usize,
+	// Allowed size in MB
 	pub size_limit: usize,
-	pub address: Address,
+	pub address: String,
 	pub next_size_limit: usize,
 	pub auth_address: String,
 	pub auth_key_sha512: String,
 	pub peers: usize,
 	pub auth_key: String,
-	// settings: SiteSettings,
-	// bad_files: usize,
-	// workers: usize,
-	// content: SiteContentSummary,
+	pub settings: SiteSettings,
+	pub bad_files: usize,
+	pub workers: usize,
+	pub content: SiteContentSummary,
 	// cert_user_id: String,
-	// started_task_num: usize,
-	// content_updated: f64,
+	pub started_task_num: usize,
+	pub content_updated: f64,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct SiteSettings {
-	peers: usize,
-	serving: bool,
-	modified: f64,
-	own: bool,
-	permissions: Vec<String>,
-	size: usize,
+	pub peers: usize,
+	pub serving: bool,
+	pub modified: f64,
+	pub own: bool,
+	pub permissions: Vec<String>,
+	pub size: usize,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct SiteContentSummary {
 	files: usize,
 	description: String,
@@ -39,7 +40,7 @@ pub struct SiteContentSummary {
 	modified: f64,
 	ignore: String,
 	signers_sign: Option<String>,
-	address: Address,
+	address: String,
 	zeronet_version: String,
 	includes: usize,
 }

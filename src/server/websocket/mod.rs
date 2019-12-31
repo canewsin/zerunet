@@ -36,7 +36,7 @@ pub fn serve_websocket(
 	match future.wait() {
 		Ok(Ok((address, addr))) => {
 			websocket.site_addr = Some(addr);
-			info!("Websocket established for {}", address);
+			info!("Websocket established for {}", address.get_address_short());
 		}
 		_ => warn!("Websocket established, but wrapper key invalid"),
 	}
@@ -68,7 +68,7 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for ZeruWebsocket {
 						return;
 					}
 				};
-				handle_command(ctx, self.site_addr.clone(), command);
+				self.handle_command(ctx, command, self.site_addr.clone());
 			}
 			ws::Message::Binary(bin) => ctx.binary(bin),
 			_ => (),
@@ -102,15 +102,32 @@ pub enum WrapperCommandType {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct ServerPortOpened {
+	ipv4: bool,
+	ipv6: bool,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct ServerInfo {
-	debug: bool,
+	ip_external: bool,
+	port_opened: ServerPortOpened,
+	platform: String,
 	fileserver_ip: String,
 	fileserver_port: usize,
-	ip_external: bool,
-	platform: String,
+	tor_enabled: bool,
+	tor_status: String,
+	tor_has_meek_bridges: bool,
 	ui_ip: String,
 	ui_port: usize,
 	version: String,
+	rev: usize,
+	timecorrection: f64,
+	language: String,
+	debug: bool,
+	offline: bool,
+	plugins: Vec<String>,
+	plugins_rev: HashMap<String, usize>,
+	// user_settings
 }
 
 fn handle_ping(ctx: &mut ws::WebsocketContext<ZeruWebsocket>, req: &Command) -> Result<(), Error> {
@@ -128,14 +145,28 @@ fn handle_server_info(
 ) -> Result<(), Error> {
 	trace!("Handle ServerInfo request");
 	let server_info = ServerInfo {
-		debug: true,
+		ip_external: false,
+		port_opened: ServerPortOpened {
+			ipv4: true,
+			ipv6: false,
+		},
+		platform: String::from("linux"), // TODO: get actual platform
 		fileserver_ip: String::from(super::SERVER_URL),
 		fileserver_port: super::SERVER_PORT,
-		ip_external: false,
-		platform: String::from("linux64"),
-		ui_ip: String::from("localhost"),
+		tor_enabled: false,
+		tor_status: String::from("Disabled"), // TODO: get actual tor status
+		tor_has_meek_bridges: false,
+		ui_ip: String::from("localhost"), // TODO: get actual ui ip
 		ui_port: super::SERVER_PORT,
-		version: String::from("0.0.1"),
+		version: String::from("0.7.1"),
+		rev: 4300,
+		timecorrection: 0f64,
+		language: String::from("en"),
+		debug: true,
+		offline: false,
+		plugins: Vec::new(),
+		plugins_rev: HashMap::new(),
+		// user_settings:
 	};
 	let resp = Message::respond(req, server_info)?;
 
@@ -144,10 +175,14 @@ fn handle_server_info(
 	Ok(())
 }
 
-fn handle_error(ctx: &mut ws::WebsocketContext<ZeruWebsocket>, text: String) -> Result<(), Error> {
+fn handle_error(
+	ctx: &mut ws::WebsocketContext<ZeruWebsocket>,
+	command: Command,
+	text: String,
+) -> Result<(), Error> {
 	let error = WrapperCommand {
 		cmd: WrapperCommandType::Error,
-		to: 0,
+		to: command.id,
 		result: WrapperResponse::Text(text),
 	};
 	let j = serde_json::to_string(&error)?;
@@ -155,41 +190,82 @@ fn handle_error(ctx: &mut ws::WebsocketContext<ZeruWebsocket>, text: String) -> 
 	Ok(())
 }
 
-fn handle_command(
-	ctx: &mut ws::WebsocketContext<ZeruWebsocket>,
-	addr: Option<actix::Addr<crate::site::Site>>,
-	command: Command,
-) {
-	match command.cmd {
-		ServerInfo => {
-			handle_server_info(ctx, &command);
-		}
-		Ping => {
-			// ctx.spawn(|c| {
-			handle_ping(ctx, &command);
-			// });
-		}
-		SiteInfo => {
-			if let Some(addr) = addr {
-				let site_info_req = crate::site::SiteInfoRequest {};
-				let result = addr.send(site_info_req).wait();
-				if let Ok(Ok(res)) = result {
-					let resp = Message::respond(&command, res).unwrap();
+impl ZeruWebsocket {
+	fn handle_command(
+		&mut self,
+		ctx: &mut ws::WebsocketContext<ZeruWebsocket>,
+		command: Command,
+		addr: Option<actix::Addr<crate::site::Site>>,
+	) {
+		match command.cmd {
+			ServerInfo => {
+				handle_server_info(ctx, &command);
+			}
+			Ping => {
+				// ctx.spawn(|c| {
+				handle_ping(ctx, &command);
+				// });
+			}
+			SiteInfo => {
+				info!("Handling SiteInfo  request");
+				if let Some(addr) = addr {
+					let site_info_req = crate::site::SiteInfoRequest {};
+					let result = addr.send(site_info_req).wait();
+					if let Ok(Ok(res)) = result {
+						let resp = Message::respond(&command, res).unwrap();
 
-					let j = serde_json::to_string(&resp).unwrap();
-					ctx.text(j);
+						let j = serde_json::to_string(&resp).unwrap();
+						ctx.text(j);
+					}
 				}
 			}
-		}
-		_ => {
-			error!("Unhandled command: {:?}", command.cmd);
-			handle_error(ctx, format!("Unhandled command: {:?}", command.cmd));
-		}
-	};
-	// match command.cmd {
-	//   UserGetGlobalSettings => info!("userGetGlobal"),
-	//   // ChannelJoin => info!("channelJoin"),
-	//   // SiteInfo => info!("siteInfo"),
-	//   _ => error!("Unknown command: '{:?}'", command.cmd),
-	// }
+			ServerErrors => {
+				info!("Handling ServerErrors request");
+				// TODO: actually return the errors
+				let errors: Vec<Vec<String>> = vec![];
+				let resp = Message::respond(&command, errors).unwrap();
+				let j = serde_json::to_string(&resp).unwrap();
+				ctx.text(j);
+			}
+			AnnouncerStats => {
+				info!("Handling AnnouncerStats request");
+				// TODO: actually return announcer stats
+				let stats: HashMap<String, String> = HashMap::new();
+				let resp = Message::respond(&command, stats).unwrap();
+				let j = serde_json::to_string(&resp).unwrap();
+				ctx.text(j);
+			}
+			UserGetSettings => {
+				info!("Handling UserGetSettings");
+				// TODO: actually return user settings
+				let resp = Message::respond(&command, String::new()).unwrap();
+				let j = serde_json::to_string(&resp).unwrap();
+				ctx.text(j);
+			}
+			SiteList => {
+				info!("Handling SiteList");
+				// TODO: actually return list of sites
+				let sites = self
+					.site_manager
+					.send(crate::site::site_manager::SiteInfoListRequest {})
+					.wait()
+					.unwrap()
+					.unwrap();
+				let resp = Message::respond(&command, sites).unwrap();
+				let j = serde_json::to_string(&resp).unwrap();
+				ctx.text(j);
+			}
+			_ => {
+				let cmd = command.cmd.clone();
+				error!("Unhandled command: {:?}", cmd);
+				handle_error(ctx, command, format!("Unhandled command: {:?}", cmd));
+			}
+		};
+		// match command.cmd {
+		//   UserGetGlobalSettings => info!("userGetGlobal"),
+		//   // ChannelJoin => info!("channelJoin"),
+		//   // SiteInfo => info!("siteInfo"),
+		//   _ => error!("Unknown command: '{:?}'", command.cmd),
+		// }
+	}
 }

@@ -1,10 +1,13 @@
-use super::{address::Address, Site};
+use super::{address::Address, site_info::SiteInfo, Site};
 use crate::error::Error;
+use crate::peer::Peer;
 use actix::{prelude::*, Actor, Addr};
+use chrono::{DateTime, Utc};
 use log::*;
 use std::collections::HashMap;
-use chrono::{DateTime, Utc};
-use crate::peer::Peer;
+use std::time::Duration;
+
+use futures::future::join_all;
 
 pub struct SiteManager {
 	sites: HashMap<Address, Addr<Site>>,
@@ -28,8 +31,10 @@ impl SiteManager {
 				"Spinning up actor for zero://{}",
 				address.get_address_short()
 			);
-			let site = Site::new();
+			let site = Site::new(address.clone());
 			let addr = site.start();
+			// TODO: Decide whether to spawn actors in syncArbiter
+			// let addr = SyncArbiter::start(1, || Site::new());
 			self.sites.insert(address.clone(), addr.clone());
 			self.updated_at = Utc::now();
 			Ok((address, addr))
@@ -95,7 +100,46 @@ impl Handler<SiteListRequest> for SiteManager {
 	type Result = Result<Vec<serde_bytes::ByteBuf>, Error>;
 
 	fn handle(&mut self, _msg: SiteListRequest, _ctx: &mut Context<Self>) -> Self::Result {
-		Ok(self.sites.iter().map(|(key, _)| serde_bytes::ByteBuf::from(key.get_address_hash())).collect())
+		Ok(
+			self
+				.sites
+				.iter()
+				.map(|(key, _)| serde_bytes::ByteBuf::from(key.get_address_hash()))
+				.collect(),
+		)
+	}
+}
+
+pub struct SiteInfoListRequest {}
+
+impl Message for SiteInfoListRequest {
+	type Result = Result<Vec<SiteInfo>, Error>;
+}
+
+impl Handler<SiteInfoListRequest> for SiteManager {
+	type Result = ResponseActFuture<Self, Vec<SiteInfo>, Error>;
+
+	fn handle(&mut self, _msg: SiteInfoListRequest, ctx: &mut Context<Self>) -> Self::Result {
+		let requests: Vec<_> = self
+			.sites
+			.iter()
+			.map(|(key, addr)| {
+				let request = addr.send(super::SiteInfoRequest {});
+				request
+			})
+			.collect();
+		let request = join_all(requests)
+			.map_err(|_error| Error::MailboxError)
+			.map(|r| {
+				r.into_iter()
+					.filter_map(|x| match x {
+						Ok(a) => Some(a),
+						Err(_) => None,
+					})
+					.collect()
+			});
+		let wrapped = actix::fut::wrap_future::<_, Self>(request);
+		Box::new(wrapped)
 	}
 }
 
@@ -160,13 +204,13 @@ impl Message for AddPeer {
 
 impl Handler<AddPeer> for SiteManager {
 	type Result = Result<(), ()>;
-	
+
 	fn handle(&mut self, msg: AddPeer, _ctx: &mut Context<Self>) -> Self::Result {
 		for (address, addr) in self.sites.iter_mut() {
 			let hash = address.get_address_hash();
 			for site in msg.sites.iter() {
 				if hash == *site {
-					addr.do_send(crate::site::AddPeer{
+					addr.do_send(crate::site::AddPeer {
 						peer_id: msg.peer_id.clone(),
 						peer_addr: msg.peer_addr.clone(),
 					})

@@ -3,17 +3,16 @@ mod message;
 
 use actix::{prelude::*, Actor, Context};
 use log::*;
-use std::net::UdpSocket;
 use serde_json::json;
+use std::net::UdpSocket;
 
-use crate::site::site_manager::SiteManager;
 use crate::peer::peer_manager::PeerManager;
+use crate::site::site_manager::SiteManager;
 
 use error::Error;
 use message::*;
 
-
-pub struct BroadcastRequest{}
+pub struct BroadcastRequest {}
 
 impl Message for BroadcastRequest {
 	type Result = Result<(), Error>;
@@ -46,11 +45,17 @@ impl Handler<BroadcastRequest> for LocalDiscoveryServer {
 
 const BROADCAST_PORT: usize = 1544;
 
-pub fn start_local_discovery(site_manager: Addr<SiteManager>, peer_manager: Addr<PeerManager>) -> Result<(), Error> {
+pub fn start_local_discovery(
+	site_manager: Addr<SiteManager>,
+	peer_manager: Addr<PeerManager>,
+) -> Result<(), Error> {
 	let port = BROADCAST_PORT;
 	let mut local_ips = Vec::new();
 	for mut iface in pnet::datalink::interfaces() {
-		iface.ips.iter_mut().for_each(|ip| local_ips.push(ip.ip().to_string()));
+		iface
+			.ips
+			.iter_mut()
+			.for_each(|ip| local_ips.push(ip.ip().to_string()));
 	}
 	info!("Ips {:?}", &local_ips);
 	let prob_ip = local_ips.iter().find(|ip| ip.starts_with("192.168.1"));
@@ -66,18 +71,15 @@ pub fn start_local_discovery(site_manager: Addr<SiteManager>, peer_manager: Addr
 	let lds = LocalDiscoveryServer::new(ip, site_manager, peer_manager)?;
 	let discovery_addr = lds.start();
 
-	discovery_addr.do_send(BroadcastRequest{});
+	discovery_addr.do_send(BroadcastRequest {});
 
-	std::thread::spawn(move || {
-		loop {
-			match broadcast_listen(&socket) {
-				Ok(msg) => discovery_addr.do_send(msg),
-				Err(err) => error!("Malformed local discovery message {:?}", err),
-			}
+	std::thread::spawn(move || loop {
+		match broadcast_listen(&socket) {
+			Ok(msg) => discovery_addr.do_send(msg),
+			Err(err) => error!("Malformed local discovery message {:?}", err),
 		}
 	});
 
-	system.run()?; // TODO: necessary?
 	Ok(())
 }
 
@@ -101,8 +103,12 @@ pub struct LocalDiscoveryServer {
 }
 
 impl LocalDiscoveryServer {
-	pub fn new(ip: &str, site_manager: Addr<SiteManager>, peer_manager: Addr<PeerManager>) -> Result<LocalDiscoveryServer, Error> {
-		let socket = UdpSocket::bind(format!("{}:{}", ip, BROADCAST_PORT+1))?;
+	pub fn new(
+		ip: &str,
+		site_manager: Addr<SiteManager>,
+		peer_manager: Addr<PeerManager>,
+	) -> Result<LocalDiscoveryServer, Error> {
+		let socket = UdpSocket::bind(format!("{}:{}", ip, BROADCAST_PORT + 1))?;
 		let vec: Vec<u8> = (0..12).map(|_| rand::random::<u8>()).collect();
 		// TODO: Bittorrent style id "-UT3530-%s" % CryptHash.random(12, "base64")
 		let peer_id = format!("-UT3530-{}", base64::encode(&vec));
@@ -161,10 +167,18 @@ impl LocalDiscoveryServer {
 		}
 		Ok(())
 	}
-	fn handle_discovery_request(&self, msg: &DiscoveryMessage) -> Result<Vec<DiscoveryMessage>, Error> {
+	fn handle_discovery_request(
+		&self,
+		msg: &DiscoveryMessage,
+	) -> Result<Vec<DiscoveryMessage>, Error> {
 		let sites_changed: Vec<String> = vec![];
-		let mut resp = DiscoveryMessage::new(self.sender.clone(), LocalDiscoveryCommand::DiscoverResponse);
-		let sites_changed = match self.site_manager.send(crate::site::site_manager::SitesChangedRequest{}).wait() {
+		let mut resp =
+			DiscoveryMessage::new(self.sender.clone(), LocalDiscoveryCommand::DiscoverResponse);
+		let sites_changed = match self
+			.site_manager
+			.send(crate::site::site_manager::SitesChangedRequest {})
+			.wait()
+		{
 			Ok(c) => c.unwrap(),
 			Err(_) => return Err(Error::CouldNotGetSitesChanged),
 		};
@@ -172,13 +186,24 @@ impl LocalDiscoveryServer {
 		resp.params.sites_changed = sites_changed.timestamp();
 		Ok(vec![resp])
 	}
-	fn handle_discovery_response(&self, msg: &DiscoveryMessage) -> Result<Vec<DiscoveryMessage>, Error> {
+	fn handle_discovery_response(
+		&self,
+		msg: &DiscoveryMessage,
+	) -> Result<Vec<DiscoveryMessage>, Error> {
 		let resp = DiscoveryMessage::new(self.sender.clone(), LocalDiscoveryCommand::SiteListRequest);
 		Ok(vec![resp])
 	}
-	fn handle_sitelist_request(&self, msg: &DiscoveryMessage) -> Result<Vec<DiscoveryMessage>, Error> {
-		let mut resp = DiscoveryMessage::new(self.sender.clone(), LocalDiscoveryCommand::SiteListResponse);
-		let sites = match self.site_manager.send(crate::site::site_manager::SiteListRequest{}).wait() {
+	fn handle_sitelist_request(
+		&self,
+		msg: &DiscoveryMessage,
+	) -> Result<Vec<DiscoveryMessage>, Error> {
+		let mut resp =
+			DiscoveryMessage::new(self.sender.clone(), LocalDiscoveryCommand::SiteListResponse);
+		let sites = match self
+			.site_manager
+			.send(crate::site::site_manager::SiteListRequest {})
+			.wait()
+		{
 			Ok(s) => s.unwrap(),
 			Err(_) => return Err(Error::CouldNotGetSiteList),
 		};
@@ -188,17 +213,23 @@ impl LocalDiscoveryServer {
 		// get sites and send them in bunches of 100
 		Ok(vec![resp])
 	}
-	fn handle_sitelist_response(&self, msg: &DiscoveryMessage) -> Result<Vec<DiscoveryMessage>, Error> {
-		trace!("SiteListResponse from {:?} ({}:{}) sites: {}",
+	fn handle_sitelist_response(
+		&self,
+		msg: &DiscoveryMessage,
+	) -> Result<Vec<DiscoveryMessage>, Error> {
+		trace!(
+			"SiteListResponse from {:?} ({}:{}) sites: {}",
 			msg.sender.peer_id,
 			msg.sender.ip,
 			msg.sender.port,
 			msg.params.sites.len()
 		);
-		self.peer_manager.do_send(crate::peer::peer_manager::UpdatePeer{
-			peer_id: msg.sender.peer_id.clone(),
-			sites: msg.params.sites.iter().map(|a| a.to_vec()).collect(),
-		});
+		self
+			.peer_manager
+			.do_send(crate::peer::peer_manager::UpdatePeer {
+				peer_id: msg.sender.peer_id.clone(),
+				sites: msg.params.sites.iter().map(|a| a.to_vec()).collect(),
+			});
 		// TODO: implement sitelist
 		// add peer to peer manager
 		Ok(vec![])

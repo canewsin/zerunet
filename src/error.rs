@@ -9,6 +9,7 @@ pub enum Error {
 	ReqwestError,
 	MsgPackEncoding,
 	MsgPackDecoding(rmp_serde::decode::Error),
+	MailboxError,
 }
 
 impl From<reqwest::Error> for Error {
@@ -47,6 +48,14 @@ impl From<rmp_serde::decode::Error> for Error {
 	fn from(error: rmp_serde::decode::Error) -> Error {
 		match error {
 			_ => Error::MsgPackDecoding(error),
+		}
+	}
+}
+
+impl From<actix::MailboxError> for Error {
+	fn from(error: actix::MailboxError) -> Error {
+		match error {
+			_ => Error::MailboxError,
 		}
 	}
 }
