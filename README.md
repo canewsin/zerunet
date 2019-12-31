@@ -8,24 +8,36 @@ zerunet is an implementation of the ZeroNet client written entirely in the rust 
 
 
 ## IMPORTANT
-In the current state of development, getting a working prototype is the number one priority, and this means that some parts may be implemented in a way that is fast to write rather than fast to execute. It is also possible outdated packages will be used temporarily until it's worth replacing them with active ones or, alternatively, update them ourselves.
+In the current state of development, getting a working prototype is the
+number one priority, and this means that some parts may be implemented
+in a way that is fast to write rather than fast to execute. It is also
+possible outdated packages will be used temporarily until it's worth
+replacing them with active ones or, alternatively, update them ourselves.
 
 ## Why do we need another ZeroNet?
 - Rust is compiled to assembly for maximum efficiency
 - Unlike Python, Rust has been designed with concurrency in mind,
   this means it will be able to run in multiple threads, reducing
-  zite lag when doing many things in the backend.
-- Rust has one of the best web server libraries: Actix, and a lot
-  of what ZeroNet does is web serving. Actix is also an actor
-  framework, and zerunet will be build using the actor model.
-- A solid Rust implementation should be less error-prone
-- There's a lot of features I'd like to see in ZeroNet:
-  - I2P, LokiNet support
-  - IPFS, RetroShare, GnuNet or even Freenet integration
+  zite lag when many things are going on in the backend.
+- Rust has one of the fastest web server libraries: Actix-web, and a
+  lot of what ZeroNet does is web serving. Actix itself is an actor
+  framework, and zerunet will be build using the actor model for
+  safe and intuitive concurrency.
+- A solid Rust implementation should be less error-prone due to its
+  really strict type system and memory ownership.
+- This will allow me to implement additional features I'd like to see in ZeroNet:
+  - Peer connections over I2P and LokiNet
+  - Integrate IPFS, RetroShare, GnuNet or even Freenet
+  - Store measurements and logs in InfluxDB for optimization during development,
+    as well as end-user monitoring of resources used by zerunet.
   When porting ZeroNet to Rust, I'll keep these in mind when structuring my code.
 
 ## Code of Conduct
-Code of Conducts are for wussies, anyone is welcome to contribute to zerunet or use it in any way they deem useful. We do not care what crimes, fictitious or real, anyone is accused of having committed.
+Code of Conducts are for wussies, anyone is welcome to contribute to
+zerunet or use it in any way they deem useful. We do not care about
+your past, your present or your future. We do not care about what crimes,
+fictitious or real, anyone is accused of having committed. Just write
+good code that does what it's supposed to do!
 
 ## Imported Libraries
 - Bitcoin utilities: rust-bitcoin
@@ -38,10 +50,33 @@ Code of Conducts are for wussies, anyone is welcome to contribute to zerunet or 
 - I2P: i2p-rs
 - HTTP Server+WebSocket: actix-web
 
-## Measurements stored to InfluxDB
-- Active connections
-- Upload (req & bandwidth)
-- Download (req & bandwidth)
+# Roadmap
+
+1. Limited API prototype
+  - All official sites (Hello, Talk, Me, etc.) work passively (anything that does not alter data)
+  - Find peers on LAN
+  - Make connections to peers over clearnet
+2. Online Peer Connections
+  - Find peers through trackers and pex.
+  - Make connections to peers over Tor and I2P.
+3. Full Core API prototype
+  - All API functions that are not part of a plugin are implemented.
+4. Priority Plugin Pack
+  - Bigfile
+  - Multiuser
+  - Cryptmessage
+  - Optional
+5. Plugin Pack #2
+  - Merger
+  - Mute
+  - Cors
+  - Newsfeed
+  - MergerSite
+6. Additional Features
+  - IPFS
+  - RetroShare
+  - GnuNet
+  - Freenet
 
 # Included Components
 - Content Manager
@@ -72,6 +107,7 @@ Checklist:
   - [ ] API/WebSocket
     - [x] WebSocket endpoint
     - [ ] Implement wrapper actions
+    - [ ] Core API
 - [ ] Peer connectivity
   - [ ] Clearnet
   - [x] LAN Discovery
