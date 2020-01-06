@@ -5,6 +5,7 @@ mod environment;
 mod error;
 mod influx_logger;
 mod local_discovery;
+mod optional_files;
 mod peer;
 mod server;
 mod site;

@@ -255,6 +255,15 @@ impl ZeruWebsocket {
 				let j = serde_json::to_string(&resp).unwrap();
 				ctx.text(j);
 			}
+			OptionalLimitStats => {
+				// TODO: replace dummy response with actual response
+				warn!("Handling OptionalLimitStats with dummy response");
+				let limit_stats = crate::optional_files::OptionalLimitStats {
+					limit: String::from("10%"),
+					used: 1000000,
+					free: 4000000,
+				};
+			}
 			_ => {
 				let cmd = command.cmd.clone();
 				error!("Unhandled command: {:?}", cmd);
