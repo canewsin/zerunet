@@ -12,7 +12,9 @@ pub trait Connection {}
 
 pub fn connect(address: PeerAddr) -> Result<impl Connection, ()> {
 	match address {
-		PeerAddr::IPV4(ip, port) | PeerAddr::IPV6(ip, port) => return Ok(TcpConnection::connect(&ip, port)),
+		PeerAddr::IPV4(ip, port) | PeerAddr::IPV6(ip, port) => {
+			return Ok(TcpConnection::connect(&ip, port))
+		}
 		_ => return Err(()),
 	}
 }
@@ -24,12 +26,8 @@ pub struct TcpConnection {
 impl TcpConnection {
 	pub fn connect(ip: &str, port: usize) -> TcpConnection {
 		let socket = TcpStream::connect(format!("{}:{}", ip, port)).unwrap();
-		TcpConnection {
-			socket,
-		}
+		TcpConnection { socket }
 	}
 }
 
-impl Connection for TcpConnection {
-
-}
+impl Connection for TcpConnection {}
