@@ -4,8 +4,8 @@
 
 # zerunet
 Pronounced \\zē·rün·net\\ or z-rune-net.
-zerunet is an implementation of the ZeroNet client written entirely in the rust programming language.
-
+zerunet is an implementation of the ZeroNet client written entirely
+in the rust programming language.
 
 ## IMPORTANT
 In the current state of development, getting a working prototype is the
@@ -27,6 +27,7 @@ replacing them with active ones or, alternatively, update them ourselves.
   really strict type system and memory ownership.
 - This will allow me to implement additional features I'd like to see in ZeroNet:
   - Peer connections over I2P and LokiNet
+  - Implement Merger-like functionality using JSON-LD
   - Integrate IPFS, RetroShare, GnuNet or even Freenet
   - Store measurements and logs in InfluxDB for optimization during development,
     as well as end-user monitoring of resources used by zerunet.
