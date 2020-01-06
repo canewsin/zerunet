@@ -1,11 +1,11 @@
 use crate::error::Error;
 use derive_more::Display;
+use futures::executor::block_on;
 use quick_xml::{events::Event, Reader};
 use regex::Regex;
 use reqwest::get;
 use std::net::UdpSocket;
 use std::time::Duration;
-use futures::executor::block_on;
 
 pub struct UPnBrunch {
 	host_url: String,

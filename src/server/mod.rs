@@ -10,8 +10,8 @@ mod site;
 pub mod websocket;
 mod wrapper;
 
-use futures::executor::block_on;
 use crate::site::site_manager::SiteManager;
+use futures::executor::block_on;
 use site::serve_file;
 use std::collections::{HashMap, HashSet};
 use websocket::serve_websocket;
@@ -57,7 +57,8 @@ pub async fn run(site_manager: Addr<SiteManager>) -> std::io::Result<()> {
 	})
 	.bind(format!("{}:{}", SERVER_URL, SERVER_PORT))
 	.unwrap()
-	.run().await
+	.run()
+	.await
 }
 
 fn serve_site(

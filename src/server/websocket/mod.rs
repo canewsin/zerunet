@@ -9,15 +9,13 @@ use actix_web::{
 };
 use actix_web_actors::ws;
 use futures::executor::block_on;
-use std::future::Future;
 use log::*;
 use request::{Command, CommandType::*};
 use response::Message;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use ws::WebsocketContext;
-use std::io::Read;
 use std::fs::File;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 pub async fn serve_websocket(
@@ -34,10 +32,10 @@ pub async fn serve_websocket(
 		.send(Lookup::Key(String::from(wrapper_key)));
 	let (address, addr) = match block_on(future) {
 		Ok(Ok(resp)) => resp,
-		_ => { 
+		_ => {
 			warn!("Websocket established, but wrapper key invalid");
-			return Err(Error::from(()))
-		},
+			return Err(Error::from(()));
+		}
 	};
 
 	info!("Websocket established for {}", address.get_address_short());
@@ -67,7 +65,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ZeruWebsocket {
 	fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
 		if msg.is_err() {
 			error!("Protocol error on websocket message");
-			return
+			return;
 		}
 		match msg.unwrap() {
 			ws::Message::Ping(msg) => ctx.pong(&msg),
@@ -75,7 +73,10 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ZeruWebsocket {
 				let command: Command = match serde_json::from_str(&text) {
 					Ok(c) => c,
 					Err(e) => {
-						error!("Could not deserialize incoming message: {:?} ({:?})", text, e);
+						error!(
+							"Could not deserialize incoming message: {:?} ({:?})",
+							text, e
+						);
 						return;
 					}
 				};
@@ -251,7 +252,8 @@ impl ZeruWebsocket {
 						time_last_error: 0.0,
 						time_status: 0.0,
 						last_error: String::from("Not implemented yet"),
-					});
+					},
+				);
 				let resp = Message::respond(&command, stats).unwrap();
 				let j = serde_json::to_string(&resp).unwrap();
 				ctx.text(j);
@@ -266,11 +268,13 @@ impl ZeruWebsocket {
 			SiteList => {
 				info!("Handling SiteList");
 				// TODO: actually return list of sites
-				let sites = block_on(self
-					.site_manager
-					.send(crate::site::site_manager::SiteInfoListRequest {}))
-					.unwrap()
-					.unwrap();
+				let sites = block_on(
+					self
+						.site_manager
+						.send(crate::site::site_manager::SiteInfoListRequest {}),
+				)
+				.unwrap()
+				.unwrap();
 				let resp = Message::respond(&command, sites).unwrap();
 				let j = serde_json::to_string(&resp).unwrap();
 				ctx.text(j);
@@ -291,9 +295,7 @@ impl ZeruWebsocket {
 				struct FeedQueryResponse {
 					rows: Vec<String>,
 				}
-				let result = FeedQueryResponse {
-					rows: Vec::new(),
-				};
+				let result = FeedQueryResponse { rows: Vec::new() };
 				let resp = Message::respond(&command, result).unwrap();
 				let j = serde_json::to_string(&resp).unwrap();
 				ctx.text(j);
@@ -304,16 +306,21 @@ impl ZeruWebsocket {
 				// if let Some(addr) = addr {
 				// 	addr.send(FileNeed command);
 				// }
-				let msg: crate::site::FileGetRequest = match serde_json::from_value(command.params.clone()) {
+				let msg: crate::site::FileGetRequest = match serde_json::from_value(command.params.clone())
+				{
 					Ok(m) => m,
 					Err(e) => {
 						error!("{:?}", e);
 						// TODO: error
 						crate::site::FileGetRequest::default()
-					},
+					}
 				};
 				let mut path = PathBuf::from("../ZeroNet/data/");
-				path.push(Path::new(&format!("{}/{}", self.address.to_string(), msg.inner_path)));
+				path.push(Path::new(&format!(
+					"{}/{}",
+					self.address.to_string(),
+					msg.inner_path
+				)));
 				let mut file = match File::open(path) {
 					Ok(f) => f,
 					Err(err) => {
@@ -323,13 +330,12 @@ impl ZeruWebsocket {
 				};
 				let mut string = String::new();
 				match file.read_to_string(&mut string) {
-					Ok(_) => {},
+					Ok(_) => {}
 					Err(_) => {
 						error!("Failed to read file to string");
-						return ()
-					}, // TODO: respond with 404 equivalent
+						return ();
+					} // TODO: respond with 404 equivalent
 				}
-
 
 				let resp = Message::respond(&command, string).unwrap();
 				let j = serde_json::to_string(&resp).unwrap();

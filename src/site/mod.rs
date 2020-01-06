@@ -8,9 +8,9 @@ use actix;
 use actix::prelude::*;
 use address::Address;
 use log::*;
+use serde_derive::{Deserialize, Serialize};
 use site_info::{SiteInfo, SiteSettings};
 use std::collections::HashMap;
-use serde_derive::{Serialize, Deserialize};
 
 pub struct Site {
 	address: Address,
@@ -36,7 +36,7 @@ impl Site {
 	pub fn get_reachable_bad_files() {}
 	pub fn retry_bad_files() {}
 	pub fn check_bad_files() {}
-	pub fn download(){}
+	pub fn download() {}
 	pub fn pooled_download_content() {}
 	pub fn pooled_download_file() {}
 	pub fn updater() {}
@@ -55,16 +55,16 @@ impl Site {
 	pub fn need_file(&mut self, inner_path: String) -> bool {
 		if false {
 			// get task if task exists
-			return false
+			return false;
 		} else if true {
 			// check if file exists
-			return true
+			return true;
 		} else if !self.settings.serving {
 			// Site is not serving
-			return false
+			return false;
 		} else {
 			// create task and wait for completion if blocking
-			return true
+			return true;
 		}
 	}
 	pub fn add_peer() {}
@@ -85,7 +85,6 @@ impl Site {
 	pub fn file_done() {}
 	pub fn file_failed() {}
 	pub fn file_forgot() {}
-
 }
 
 impl Actor for Site {
@@ -167,6 +166,6 @@ impl Handler<FileGetRequest> for Site {
 	type Result = Result<bool, ()>;
 
 	fn handle(&mut self, msg: FileGetRequest, _ctx: &mut Context<Self>) -> Self::Result {
-		return Ok(true)
+		return Ok(true);
 	}
 }

@@ -12,7 +12,7 @@ use std::sync::mpsc::{channel, RecvError};
 
 pub fn start_site_manager() -> Result<Addr<SiteManager>, RecvError> {
 	info!("Starting site manager.");
-	
+
 	let (sender, receiver) = channel();
 	std::thread::spawn(move || {
 		let site_manager = SiteManager::new();
@@ -143,18 +143,19 @@ impl Handler<SiteInfoListRequest> for SiteManager {
 		let requests: Vec<_> = self
 			.sites
 			.iter()
-			.map(|(key, addr)| {
-				addr.send(super::SiteInfoRequest {})
-			})
+			.map(|(key, addr)| addr.send(super::SiteInfoRequest {}))
 			.collect();
 		let request = join_all(requests)
 			// .map_err(|_error| Error::MailboxError)
 			.map(|r| {
-				Ok(r.into_iter()
-					.filter_map(|x| match x {
-						Ok(Ok(a)) => Some(a),
-						_ => None,
-					}).collect())
+				Ok(
+					r.into_iter()
+						.filter_map(|x| match x {
+							Ok(Ok(a)) => Some(a),
+							_ => None,
+						})
+						.collect(),
+				)
 			});
 		let wrapped = actix::fut::wrap_future::<_, Self>(request);
 		Box::new(wrapped)

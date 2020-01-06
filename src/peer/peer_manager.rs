@@ -7,7 +7,9 @@ use std::collections::HashMap;
 use std::sync::mpsc::{channel, RecvError};
 
 // start_peer_manager starts the peer manager actor in a new system thread
-pub fn start_peer_manager(site_manager_addr: Addr<SiteManager>) -> Result<Addr<PeerManager>, RecvError> {
+pub fn start_peer_manager(
+	site_manager_addr: Addr<SiteManager>,
+) -> Result<Addr<PeerManager>, RecvError> {
 	info!("Starting peer manager");
 
 	let (sender, receiver) = channel();

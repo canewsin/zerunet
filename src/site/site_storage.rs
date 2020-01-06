@@ -35,6 +35,4 @@ pub trait SiteStorage {
 	fn delete_files() {}
 }
 
-impl SiteStorage for Site {
-
-}
+impl SiteStorage for Site {}

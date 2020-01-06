@@ -4,15 +4,13 @@ use crate::site::address::Address;
 use crate::site::site_manager::AddWrapperKey;
 use actix_files::NamedFile;
 use actix_web::{HttpRequest, HttpResponse, Responder, Result};
-use futures::future::Future;
+use futures::executor::block_on;
 use log::*;
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use uuid::Uuid;
-use futures::executor::block_on;
-use std::sync::Arc;
 
 struct WrapperData {
 	inner_path: String,

@@ -20,7 +20,7 @@ pub fn serve_file(
 	if address == "Test" {
 		file_path.push(&Path::new("test/wrapper/public"));
 	} else {
-		file_path = PathBuf::from("/home/crolsi/Programs/ZeroNet/data/");
+		file_path = PathBuf::from("../ZeroNet/data/");
 		file_path.push(&Path::new(address));
 	}
 	file_path.push(&Path::new(inner_path));

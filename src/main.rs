@@ -9,9 +9,9 @@ mod optional_files;
 mod peer;
 mod server;
 mod site;
+mod tracker;
 mod upnp;
 mod util;
-mod tracker;
 
 use std::fs::File;
 use std::io::prelude::*;
@@ -23,13 +23,12 @@ use rand;
 use serde_json;
 use std::path::PathBuf;
 
-use actix::Actor;
-use local_discovery::start_local_discovery;
-use peer::peer_manager::start_peer_manager;
-use site::site_manager::start_site_manager;
-use log::*;
-use pretty_env_logger;
 use futures::executor::block_on;
+use local_discovery::start_local_discovery;
+use log::*;
+use peer::peer_manager::start_peer_manager;
+use pretty_env_logger;
+use site::site_manager::start_site_manager;
 
 // curl "http://localhost:9999/api/v2/write?org=zerunet&bucket=zeronet&precision=s" \                        Fri 27 Sep 2019 23:57:24 CEST
 //      --header "Authorization: Token hgt8JHm1c6c9_rD_lumpXNEf1qCjVqyT13AOSzrlbZfhlKEIc5MaMfKgZq8H4w1wHDCsFICF-UGEI3Zok5OiMg==" \
@@ -83,8 +82,8 @@ fn main() {
 		Ok(f) => f,
 		Err(err) => {
 			error!("{:?}", err);
-			return
-		},
+			return;
+		}
 	};
 
 	let test_content: content::Content = match serde_json::from_reader(BufReader::new(file)) {
@@ -102,16 +101,16 @@ fn main() {
 		Ok(f) => f,
 		Err(err) => {
 			error!("{:?}", err);
-			return
-		},
+			return;
+		}
 	};
 
 	let string = match serde_json::to_string(&test_content2) {
 		Ok(s) => s,
 		Err(err) => {
 			error!("{:?}", err);
-			return
-		},
+			return;
+		}
 	};
 
 	new_file.write_all(&test_content.dump().unwrap().to_string().as_bytes());
@@ -124,8 +123,8 @@ fn main() {
 		Some(v) => v,
 		None => {
 			error!("Got None for {}", key);
-			return
-		},
+			return;
+		}
 	};
 
 	match zerusign::verify(
