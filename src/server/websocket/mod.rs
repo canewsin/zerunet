@@ -276,6 +276,20 @@ impl ZeruWebsocket {
 					free: 4000000,
 				};
 			}
+			FeedQuery => {
+				warn!("Handling FeedQuery");
+				// TODO: move this to proper place
+				#[derive(Serialize, Deserialize, Debug)]
+				struct FeedQueryResponse {
+					rows: Vec<String>,
+				}
+				let result = FeedQueryResponse {
+					rows: Vec::new(),
+				};
+				let resp = Message::respond(&command, result).unwrap();
+				let j = serde_json::to_string(&resp).unwrap();
+				ctx.text(j);
+			}
 			FileGet => {
 				warn!("Handling FileGet request");
 				// if required || inner_path in site.bad_files

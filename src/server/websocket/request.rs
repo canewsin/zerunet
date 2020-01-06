@@ -1,3 +1,4 @@
+use crate::util::is_default;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -82,6 +83,8 @@ pub enum CommandType {
 	UserSetSettings,
 	AnnouncerStats,
 	SiteSetLimit,
+	ChartDbQuery,
+	FilterIncludeList,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -89,4 +92,6 @@ pub struct Command {
 	pub cmd: CommandType,
 	pub params: serde_json::Value,
 	pub id: isize,
+	#[serde(skip_serializing_if = "is_default", default)]
+	pub wrapper_nonce: String,
 }
