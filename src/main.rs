@@ -25,10 +25,11 @@ use std::path::PathBuf;
 
 use actix::Actor;
 use local_discovery::start_local_discovery;
+use peer::peer_manager::start_peer_manager;
+use site::site_manager::start_site_manager;
 use log::*;
-use peer::peer_manager::PeerManager;
 use pretty_env_logger;
-use site::site_manager::SiteManager;
+use futures::executor::block_on;
 
 // curl "http://localhost:9999/api/v2/write?org=zerunet&bucket=zeronet&precision=s" \                        Fri 27 Sep 2019 23:57:24 CEST
 //      --header "Authorization: Token hgt8JHm1c6c9_rD_lumpXNEf1qCjVqyT13AOSzrlbZfhlKEIc5MaMfKgZq8H4w1wHDCsFICF-UGEI3Zok5OiMg==" \
@@ -60,24 +61,30 @@ fn main() {
 
 	let system = actix::System::new("Site manager");
 
-	info!("Starting site manager.");
-	let site_manager = SiteManager::new();
-	let site_manager_addr = site_manager.start();
-
-	info!("Starting peer manager.");
-	let peer_manager = PeerManager::new(site_manager_addr.clone());
-	let peer_manager_addr = peer_manager.start();
+	let site_manager_addr = start_site_manager().unwrap();
+	let peer_manager_addr = start_peer_manager(site_manager_addr.clone()).unwrap();
 
 	let res = start_local_discovery(site_manager_addr.clone(), peer_manager_addr);
 	info!("{:?}", res);
 
 	info!("Starting zerunet server.");
-	server::run(site_manager_addr);
+	std::thread::spawn(move || {
+		let system = actix::System::new("Server system");
+		match block_on(server::run(site_manager_addr)) {
+			Ok(_) => info!("zerunet server exited with ok"),
+			Err(err) => error!("zerunet server exited with {:?}", err),
+		}
+	});
+
+	system.run();
 
 	let content_path = Path::new("test/content.json");
 	let file = match File::open(content_path) {
 		Ok(f) => f,
-		Err(_) => return,
+		Err(err) => {
+			error!("{:?}", err);
+			return
+		},
 	};
 
 	let test_content: content::Content = match serde_json::from_reader(BufReader::new(file)) {
@@ -93,12 +100,18 @@ fn main() {
 	let new_content_path = Path::new("test/content-new.json");
 	let mut new_file = match File::create(new_content_path) {
 		Ok(f) => f,
-		Err(_) => return,
+		Err(err) => {
+			error!("{:?}", err);
+			return
+		},
 	};
 
 	let string = match serde_json::to_string(&test_content2) {
 		Ok(s) => s,
-		Err(_) => return,
+		Err(err) => {
+			error!("{:?}", err);
+			return
+		},
 	};
 
 	new_file.write_all(&test_content.dump().unwrap().to_string().as_bytes());
@@ -109,7 +122,10 @@ fn main() {
 
 	let value = match test_content.signs.get(&key) {
 		Some(v) => v,
-		None => return,
+		None => {
+			error!("Got None for {}", key);
+			return
+		},
 	};
 
 	match zerusign::verify(

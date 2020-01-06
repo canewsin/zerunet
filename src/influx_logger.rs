@@ -1,6 +1,7 @@
 use env_logger::Builder;
 use log::Level;
 use reqwest;
+use futures::executor::block_on;
 
 #[inline]
 pub fn init() {
@@ -34,7 +35,7 @@ pub fn formatted_builder() -> Builder {
       .body(format!("log,appname=zerunet,facility=home,host=dell,level={} trace=\"{}\",message=\"{}\"", level, target, record.args()))
       .send();
 
-    match res {
+    match block_on(res) {
       Ok(_) => Ok(()),
       Err(error) => {
         println!("Error: {:?}", error);

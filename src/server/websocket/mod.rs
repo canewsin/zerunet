@@ -8,15 +8,19 @@ use actix_web::{
 	Error, HttpRequest, HttpResponse, Result,
 };
 use actix_web_actors::ws;
-use futures::Future;
+use futures::executor::block_on;
+use std::future::Future;
 use log::*;
 use request::{Command, CommandType::*};
 use response::Message;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use ws::WebsocketContext;
+use std::io::Read;
+use std::fs::File;
+use std::path::{Path, PathBuf};
 
-pub fn serve_websocket(
+pub async fn serve_websocket(
 	req: HttpRequest,
 	query: Query<HashMap<String, String>>,
 	data: Data<crate::server::ZeroServer>,
@@ -25,21 +29,23 @@ pub fn serve_websocket(
 	info!("Serving websocket");
 	let wrapper_key = query.get("wrapper_key").unwrap();
 
-	let mut websocket = ZeruWebsocket {
-		site_manager: data.site_manager.clone(),
-		site_addr: None,
-	};
-
 	let future = data
 		.site_manager
 		.send(Lookup::Key(String::from(wrapper_key)));
-	match future.wait() {
-		Ok(Ok((address, addr))) => {
-			websocket.site_addr = Some(addr);
-			info!("Websocket established for {}", address.get_address_short());
-		}
-		_ => warn!("Websocket established, but wrapper key invalid"),
-	}
+	let (address, addr) = match block_on(future) {
+		Ok(Ok(resp)) => resp,
+		_ => { 
+			warn!("Websocket established, but wrapper key invalid");
+			return Err(Error::from(()))
+		},
+	};
+
+	info!("Websocket established for {}", address.get_address_short());
+	let mut websocket = ZeruWebsocket {
+		site_manager: data.site_manager.clone(),
+		site_addr: addr,
+		address: address,
+	};
 
 	let resp = ws::start(websocket, &req, stream);
 	resp
@@ -47,7 +53,8 @@ pub fn serve_websocket(
 
 struct ZeruWebsocket {
 	site_manager: Addr<SiteManager>,
-	site_addr: Option<actix::Addr<crate::site::Site>>,
+	site_addr: actix::Addr<crate::site::Site>,
+	address: crate::site::address::Address,
 }
 
 impl Actor for ZeruWebsocket {
@@ -56,9 +63,13 @@ impl Actor for ZeruWebsocket {
 	fn started(&mut self, ctx: &mut Self::Context) {}
 }
 
-impl StreamHandler<ws::Message, ws::ProtocolError> for ZeruWebsocket {
-	fn handle(&mut self, msg: ws::Message, ctx: &mut Self::Context) {
-		match msg {
+impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ZeruWebsocket {
+	fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
+		if msg.is_err() {
+			error!("Protocol error on websocket message");
+			return
+		}
+		match msg.unwrap() {
 			ws::Message::Ping(msg) => ctx.pong(&msg),
 			ws::Message::Text(text) => {
 				let command: Command = match serde_json::from_str(&text) {
@@ -195,7 +206,7 @@ impl ZeruWebsocket {
 		&mut self,
 		ctx: &mut ws::WebsocketContext<ZeruWebsocket>,
 		command: Command,
-		addr: Option<actix::Addr<crate::site::Site>>,
+		addr: actix::Addr<crate::site::Site>,
 	) {
 		match command.cmd {
 			Ping => {
@@ -208,15 +219,13 @@ impl ZeruWebsocket {
 			}
 			SiteInfo => {
 				warn!("Handling SiteInfo request with dummy response");
-				if let Some(addr) = addr {
-					let site_info_req = crate::site::SiteInfoRequest {};
-					let result = addr.send(site_info_req).wait();
-					if let Ok(Ok(res)) = result {
-						let resp = Message::respond(&command, res).unwrap();
+				let site_info_req = crate::site::SiteInfoRequest {};
+				let result = block_on(addr.send(site_info_req));
+				if let Ok(Ok(res)) = result {
+					let resp = Message::respond(&command, res).unwrap();
 
-						let j = serde_json::to_string(&resp).unwrap();
-						ctx.text(j);
-					}
+					let j = serde_json::to_string(&resp).unwrap();
+					ctx.text(j);
 				}
 			}
 			ServerErrors => {
@@ -257,10 +266,9 @@ impl ZeruWebsocket {
 			SiteList => {
 				info!("Handling SiteList");
 				// TODO: actually return list of sites
-				let sites = self
+				let sites = block_on(self
 					.site_manager
-					.send(crate::site::site_manager::SiteInfoListRequest {})
-					.wait()
+					.send(crate::site::site_manager::SiteInfoListRequest {}))
 					.unwrap()
 					.unwrap();
 				let resp = Message::respond(&command, sites).unwrap();
@@ -296,20 +304,34 @@ impl ZeruWebsocket {
 				// if let Some(addr) = addr {
 				// 	addr.send(FileNeed command);
 				// }
-				// let msg: crate::site::FileGetRequest = match crate::util::from_params(command.params.clone()) {
-				let param_string = serde_json::to_string(&command.params).unwrap();
-				println!("{:?}", param_string);
-				let msg: crate::site::FileGetRequest = match serde_json::from_str(&param_string) {
+				let msg: crate::site::FileGetRequest = match serde_json::from_value(command.params.clone()) {
 					Ok(m) => m,
 					Err(e) => {
 						error!("{:?}", e);
+						// TODO: error
 						crate::site::FileGetRequest::default()
-						// crate::site::FileGetRequest::FileGetRequest::default()
 					},
 				};
-				trace!("{:?}, {:?}", msg, &command.params);
-				let result = String::from("[]");
-				let resp = Message::respond(&command, result).unwrap();
+				let mut path = PathBuf::from("../ZeroNet/data/");
+				path.push(Path::new(&format!("{}/{}", self.address.to_string(), msg.inner_path)));
+				let mut file = match File::open(path) {
+					Ok(f) => f,
+					Err(err) => {
+						error!("Failed to get file: {:?}", err);
+						return (); // TODO: respond with 404 equivalent
+					}
+				};
+				let mut string = String::new();
+				match file.read_to_string(&mut string) {
+					Ok(_) => {},
+					Err(_) => {
+						error!("Failed to read file to string");
+						return ()
+					}, // TODO: respond with 404 equivalent
+				}
+
+
+				let resp = Message::respond(&command, string).unwrap();
 				let j = serde_json::to_string(&resp).unwrap();
 				ctx.text(j);
 			}

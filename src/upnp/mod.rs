@@ -5,6 +5,7 @@ use regex::Regex;
 use reqwest::get;
 use std::net::UdpSocket;
 use std::time::Duration;
+use futures::executor::block_on;
 
 pub struct UPnBrunch {
 	host_url: String,
@@ -64,8 +65,7 @@ pub fn retrieve_location(resp: String) -> Option<String> {
 // for the controlURL of either a WANIPConnection
 // or WANPPPConnection.
 pub fn retrieve_igd_profile(url: &String) -> Result<(String, Connection), Error> {
-	let mut resp: reqwest::Response = get(url)?;
-	let text = resp.text()?;
+	let text = block_on(block_on(get(url))?.text())?;
 	let mut reader = Reader::from_str(&text);
 	let mut buf = Vec::new();
 	let mut control_url = None;
@@ -211,8 +211,8 @@ impl UPnBrunch {
 			)
 			.header("Content-Type", "text/xml")
 			.body(soap_message.clone())
-			.send()?;
-		Ok(resp)
+			.send();
+		Ok(block_on(resp)?)
 	}
 
 	// Sends requests for each protocol to the IGD

@@ -4,6 +4,27 @@ use crate::site::site_manager::SiteManager;
 use actix::{prelude::*, Actor, Addr};
 use log::*;
 use std::collections::HashMap;
+use std::sync::mpsc::{channel, RecvError};
+
+// start_peer_manager starts the peer manager actor in a new system thread
+pub fn start_peer_manager(site_manager_addr: Addr<SiteManager>) -> Result<Addr<PeerManager>, RecvError> {
+	info!("Starting peer manager");
+
+	let (sender, receiver) = channel();
+	std::thread::spawn(move || {
+		let peer_manager = PeerManager::new(site_manager_addr);
+		let peer_manager_system = System::new("Peer manager");
+		let peer_manager_addr = peer_manager.start();
+		if sender.send(peer_manager_addr).is_err() {
+			error!("Error sending peer manager address to main thread");
+		}
+
+		if peer_manager_system.run().is_err() {
+			error!("Peer Manager Actix System encountered an error");
+		}
+	});
+	receiver.recv()
+}
 
 pub struct PeerID(String);
 

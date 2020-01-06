@@ -11,6 +11,8 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use uuid::Uuid;
+use futures::executor::block_on;
+use std::sync::Arc;
 
 struct WrapperData {
 	inner_path: String,
@@ -68,7 +70,7 @@ pub fn serve_wrapper(
 	// The idea here is to make sure that the key has been added before
 	// responding to the request, but it's highly unlikely that this
 	// future would not be resolved. Maybe it's ok to just use do_send?
-	if result.wait().is_err() {
+	if block_on(result).is_err() {
 		error!("Error sending wrapper key to site manager");
 	}
 
@@ -153,7 +155,7 @@ pub fn serve_uimedia(req: HttpRequest) -> HttpResponse {
 	let inner_path = req.match_info().query("inner_path");
 
 	match serve_uimedia_file(inner_path) {
-		Ok(f) => match f.respond_to(&req) {
+		Ok(f) => match block_on(f.respond_to(&req)) {
 			Ok(r) => r,
 			Err(_) => HttpResponse::BadRequest().finish(),
 		},

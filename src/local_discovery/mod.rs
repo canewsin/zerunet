@@ -5,6 +5,7 @@ use actix::{prelude::*, Actor, Context};
 use log::*;
 use serde_json::json;
 use std::net::UdpSocket;
+use futures::executor::block_on;
 
 use crate::peer::peer_manager::PeerManager;
 use crate::site::site_manager::SiteManager;
@@ -174,10 +175,9 @@ impl LocalDiscoveryServer {
 		let sites_changed: Vec<String> = vec![];
 		let mut resp =
 			DiscoveryMessage::new(self.sender.clone(), LocalDiscoveryCommand::DiscoverResponse);
-		let sites_changed = match self
+		let sites_changed = match block_on(self
 			.site_manager
-			.send(crate::site::site_manager::SitesChangedRequest {})
-			.wait()
+			.send(crate::site::site_manager::SitesChangedRequest {}))
 		{
 			Ok(c) => c.unwrap(),
 			Err(_) => return Err(Error::CouldNotGetSitesChanged),
@@ -199,10 +199,9 @@ impl LocalDiscoveryServer {
 	) -> Result<Vec<DiscoveryMessage>, Error> {
 		let mut resp =
 			DiscoveryMessage::new(self.sender.clone(), LocalDiscoveryCommand::SiteListResponse);
-		let sites = match self
+		let sites = match block_on(self
 			.site_manager
-			.send(crate::site::site_manager::SiteListRequest {})
-			.wait()
+			.send(crate::site::site_manager::SiteListRequest {}))
 		{
 			Ok(s) => s.unwrap(),
 			Err(_) => return Err(Error::CouldNotGetSiteList),

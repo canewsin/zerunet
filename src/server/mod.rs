@@ -10,6 +10,7 @@ mod site;
 pub mod websocket;
 mod wrapper;
 
+use futures::executor::block_on;
 use crate::site::site_manager::SiteManager;
 use site::serve_file;
 use std::collections::{HashMap, HashSet};
@@ -24,20 +25,20 @@ pub struct ZeroServer {
 	wrapper_nonces: Arc<Mutex<HashSet<String>>>,
 }
 
-fn index() -> Result<String> {
+async fn index(data: Data<ZeroServer>) -> Result<String> {
 	Ok(format!("Welcome!"))
 }
 
-pub fn run(site_manager: Addr<SiteManager>) {
+pub async fn run(site_manager: Addr<SiteManager>) -> std::io::Result<()> {
 	let nonces = Arc::new(Mutex::new(HashSet::new()));
 
 	HttpServer::new(move || {
-		let shared_data = Data::new(ZeroServer {
+		let shared_data = ZeroServer {
 			site_manager: site_manager.clone(),
 			wrapper_nonces: nonces.clone(),
-		});
+		};
 		App::new()
-			.register_data(shared_data.clone())
+			.data(shared_data)
 			.route("/", get().to(index))
 			.route("/ZeroNet-Internal/Websocket", get().to(serve_websocket))
 			// Debug
@@ -56,8 +57,7 @@ pub fn run(site_manager: Addr<SiteManager>) {
 	})
 	.bind(format!("{}:{}", SERVER_URL, SERVER_PORT))
 	.unwrap()
-	.run()
-	.unwrap();
+	.run().await
 }
 
 fn serve_site(
@@ -91,7 +91,7 @@ fn serve_site(
 		return serve_wrapper(req, data);
 	}
 	match serve_file(&req, data) {
-		Ok(res) => match res.respond_to(&req) {
+		Ok(res) => match block_on(res.respond_to(&req)) {
 			Ok(r) => return r,
 			Err(err) => {
 				error!("Bad request {}", err);

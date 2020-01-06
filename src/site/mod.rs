@@ -150,13 +150,13 @@ impl Handler<AddPeer> for Site {
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct FileGetRequest {
 	#[serde(default)]
-	inner_path: String,
+	pub inner_path: String,
 	#[serde(default)]
-	required: bool,
+	pub required: bool,
 	#[serde(default)]
-	format: String,
+	pub format: String,
 	#[serde(default)]
-	timeout: f64,
+	pub timeout: f64,
 }
 
 impl Message for FileGetRequest {

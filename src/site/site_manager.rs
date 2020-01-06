@@ -5,9 +5,29 @@ use actix::{prelude::*, Actor, Addr};
 use chrono::{DateTime, Utc};
 use log::*;
 use std::collections::HashMap;
-use std::time::Duration;
 
 use futures::future::join_all;
+use futures::future::{FutureExt, TryFutureExt};
+use std::sync::mpsc::{channel, RecvError};
+
+pub fn start_site_manager() -> Result<Addr<SiteManager>, RecvError> {
+	info!("Starting site manager.");
+	
+	let (sender, receiver) = channel();
+	std::thread::spawn(move || {
+		let site_manager = SiteManager::new();
+		let site_manager_system = System::new("Site manager");
+		let site_manager_addr = site_manager.start();
+		if sender.send(site_manager_addr).is_err() {
+			error!("Error sending site manager address to main thread");
+		}
+
+		if site_manager_system.run().is_err() {
+			error!("Site Manager Actix System encountered an error");
+		};
+	});
+	receiver.recv()
+}
 
 pub struct SiteManager {
 	sites: HashMap<Address, Addr<Site>>,
@@ -117,26 +137,24 @@ impl Message for SiteInfoListRequest {
 }
 
 impl Handler<SiteInfoListRequest> for SiteManager {
-	type Result = ResponseActFuture<Self, Vec<SiteInfo>, Error>;
+	type Result = ResponseActFuture<Self, Result<Vec<SiteInfo>, Error>>;
 
 	fn handle(&mut self, _msg: SiteInfoListRequest, ctx: &mut Context<Self>) -> Self::Result {
 		let requests: Vec<_> = self
 			.sites
 			.iter()
 			.map(|(key, addr)| {
-				let request = addr.send(super::SiteInfoRequest {});
-				request
+				addr.send(super::SiteInfoRequest {})
 			})
 			.collect();
 		let request = join_all(requests)
-			.map_err(|_error| Error::MailboxError)
+			// .map_err(|_error| Error::MailboxError)
 			.map(|r| {
-				r.into_iter()
+				Ok(r.into_iter()
 					.filter_map(|x| match x {
-						Ok(a) => Some(a),
-						Err(_) => None,
-					})
-					.collect()
+						Ok(Ok(a)) => Some(a),
+						_ => None,
+					}).collect())
 			});
 		let wrapped = actix::fut::wrap_future::<_, Self>(request);
 		Box::new(wrapped)
