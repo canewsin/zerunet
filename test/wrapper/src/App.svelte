@@ -296,6 +296,35 @@
 				title: "Site Resume",
 				fn: () => window.f.cmdp("siteResume", {}),
 			},
+			// TODO: not sure if these belong here
+			{
+				title: "Server Errors",
+				fn: () => window.f.cmdp("serverErrors", {}),
+			},
+			{
+				title: "User Get Settings",
+				fn: () => window.f.cmdp("userGetSettings", {}),
+			},
+			{
+				title: "User Set Settings",
+				fn: () => window.f.cmdp("userSetSettings", {}),
+			},
+			{
+				title: "Announcer Stats",
+				fn: () => window.f.cmdp("announcerStats", {}),
+			},
+			{
+				title: "Site Set Limit",
+				fn: () => window.f.cmdp("siteSetLimit", {}),
+			},
+			{
+				title: "Chart Db Query",
+				fn: () => window.f.cmdp("chartDbQuery", {}),
+			},
+			{
+				title: "Filter Include List",
+				fn: () => window.f.cmdp("filterIncludeList", {}),
+			}
 		],
 	}
 	let test_suites = [
