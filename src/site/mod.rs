@@ -1,19 +1,21 @@
 pub mod address;
 mod site_info;
 pub mod site_manager;
+pub mod site_storage;
 
 use crate::peer::Peer;
 use actix;
 use actix::prelude::*;
 use address::Address;
 use log::*;
-use site_info::SiteInfo;
+use site_info::{SiteInfo, SiteSettings};
 use std::collections::HashMap;
-use std::str::FromStr;
+use serde_derive::{Serialize, Deserialize};
 
 pub struct Site {
 	address: Address,
 	peers: HashMap<String, Addr<Peer>>,
+	settings: SiteSettings,
 }
 
 impl Site {
@@ -21,8 +23,69 @@ impl Site {
 		Site {
 			address,
 			peers: HashMap::new(),
+			settings: SiteSettings::default(),
 		}
 	}
+	pub fn load_settings() {}
+	pub fn save_settings() {}
+	pub fn is_serving() {}
+	pub fn get_settings_cache() {}
+	pub fn get_size_limit() {}
+	pub fn get_next_size_limit() {}
+	pub fn download_content() {}
+	pub fn get_reachable_bad_files() {}
+	pub fn retry_bad_files() {}
+	pub fn check_bad_files() {}
+	pub fn download(){}
+	pub fn pooled_download_content() {}
+	pub fn pooled_download_file() {}
+	pub fn updater() {}
+	pub fn check_modifications() {}
+	pub fn update() {}
+	pub fn redownload_contents() {}
+	pub fn publisher() {}
+	pub fn publish() {}
+	pub fn clone() {}
+	pub fn pooled_need_file() {}
+	pub fn is_file_download_allowed() {}
+	pub fn need_file_info() {
+		// TODO: get info for file from content.json
+	}
+	// Check and download if file not exist
+	pub fn need_file(&mut self, inner_path: String) -> bool {
+		if false {
+			// get task if task exists
+			return false
+		} else if true {
+			// check if file exists
+			return true
+		} else if !self.settings.serving {
+			// Site is not serving
+			return false
+		} else {
+			// create task and wait for completion if blocking
+			return true
+		}
+	}
+	pub fn add_peer() {}
+	pub fn announce() {}
+	pub fn need_connections() {}
+	pub fn get_connectable_peers() {}
+	pub fn get_recent_peers() {}
+	pub fn get_connected_peers() {}
+	pub fn cleanup_peers() {}
+	pub fn send_my_hashfield() {}
+	pub fn update_hashfield() {}
+	pub fn is_downloadable() {}
+	pub fn delete() {}
+	pub fn add_event_listener() {}
+	pub fn update_websocket() {}
+	pub fn message_websocket() {}
+	pub fn file_started() {}
+	pub fn file_done() {}
+	pub fn file_failed() {}
+	pub fn file_forgot() {}
+
 }
 
 impl Actor for Site {
@@ -39,6 +102,7 @@ impl Handler<SiteInfoRequest> for Site {
 	type Result = Result<SiteInfo, ()>;
 
 	fn handle(&mut self, msg: SiteInfoRequest, ctx: &mut Context<Self>) -> Self::Result {
+		// TODO: replace default values
 		Ok(SiteInfo {
 			tasks: 0,
 			size_limit: 10,
@@ -46,16 +110,9 @@ impl Handler<SiteInfoRequest> for Site {
 			next_size_limit: 10,
 			auth_address: String::from("test"),
 			auth_key_sha512: String::from("test"),
-			peers: 1,
+			peers: self.peers.len() + 1, // TODO: only add 1 if hosting zite
 			auth_key: String::from("test"),
-			settings: site_info::SiteSettings {
-				peers: 0,
-				serving: true,
-				modified: 0f64,
-				own: false,
-				permissions: vec![String::from("ADMIN")],
-				size: 0,
-			},
+			settings: self.settings.clone(),
 			bad_files: 0,
 			workers: 0,
 			content: Default::default(),
@@ -87,5 +144,29 @@ impl Handler<AddPeer> for Site {
 			);
 		}
 		Ok(())
+	}
+}
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct FileGetRequest {
+	#[serde(default)]
+	inner_path: String,
+	#[serde(default)]
+	required: bool,
+	#[serde(default)]
+	format: String,
+	#[serde(default)]
+	timeout: f64,
+}
+
+impl Message for FileGetRequest {
+	type Result = Result<bool, ()>;
+}
+
+impl Handler<FileGetRequest> for Site {
+	type Result = Result<bool, ()>;
+
+	fn handle(&mut self, msg: FileGetRequest, _ctx: &mut Context<Self>) -> Self::Result {
+		return Ok(true)
 	}
 }

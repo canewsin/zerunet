@@ -276,6 +276,29 @@ impl ZeruWebsocket {
 					free: 4000000,
 				};
 			}
+			FileGet => {
+				warn!("Handling FileGet request");
+				// if required || inner_path in site.bad_files
+				// if let Some(addr) = addr {
+				// 	addr.send(FileNeed command);
+				// }
+				// let msg: crate::site::FileGetRequest = match crate::util::from_params(command.params.clone()) {
+				let param_string = serde_json::to_string(&command.params).unwrap();
+				println!("{:?}", param_string);
+				let msg: crate::site::FileGetRequest = match serde_json::from_str(&param_string) {
+					Ok(m) => m,
+					Err(e) => {
+						error!("{:?}", e);
+						crate::site::FileGetRequest::default()
+						// crate::site::FileGetRequest::FileGetRequest::default()
+					},
+				};
+				trace!("{:?}, {:?}", msg, &command.params);
+				let result = String::from("[]");
+				let resp = Message::respond(&command, result).unwrap();
+				let j = serde_json::to_string(&resp).unwrap();
+				ctx.text(j);
+			}
 			_ => {
 				let cmd = command.cmd.clone();
 				error!("Unhandled command: {:?}", cmd);

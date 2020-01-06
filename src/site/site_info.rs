@@ -1,7 +1,7 @@
 use super::address::Address;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct SiteInfo {
 	pub tasks: usize,
 	// Allowed size in MB
@@ -21,7 +21,7 @@ pub struct SiteInfo {
 	pub content_updated: f64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct SiteSettings {
 	pub peers: usize,
 	pub serving: bool,
@@ -31,7 +31,7 @@ pub struct SiteSettings {
 	pub size: usize,
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct SiteContentSummary {
 	files: usize,
 	description: String,
