@@ -63,8 +63,8 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for ZeruWebsocket {
 			ws::Message::Text(text) => {
 				let command: Command = match serde_json::from_str(&text) {
 					Ok(c) => c,
-					Err(_) => {
-						error!("Could not deserialize incoming message: {:?}", text);
+					Err(e) => {
+						error!("Could not deserialize incoming message: {:?} ({:?})", text, e);
 						return;
 					}
 				};
@@ -143,7 +143,7 @@ fn handle_server_info(
 	ctx: &mut ws::WebsocketContext<ZeruWebsocket>,
 	req: &Command,
 ) -> Result<(), Error> {
-	trace!("Handle ServerInfo request");
+	warn!("Handling ServerInfo request");
 	let server_info = ServerInfo {
 		ip_external: false,
 		port_opened: ServerPortOpened {
@@ -198,16 +198,16 @@ impl ZeruWebsocket {
 		addr: Option<actix::Addr<crate::site::Site>>,
 	) {
 		match command.cmd {
-			ServerInfo => {
-				handle_server_info(ctx, &command);
-			}
 			Ping => {
 				// ctx.spawn(|c| {
 				handle_ping(ctx, &command);
 				// });
 			}
+			ServerInfo => {
+				handle_server_info(ctx, &command);
+			}
 			SiteInfo => {
-				info!("Handling SiteInfo  request");
+				warn!("Handling SiteInfo request with dummy response");
 				if let Some(addr) = addr {
 					let site_info_req = crate::site::SiteInfoRequest {};
 					let result = addr.send(site_info_req).wait();
@@ -220,7 +220,7 @@ impl ZeruWebsocket {
 				}
 			}
 			ServerErrors => {
-				info!("Handling ServerErrors request");
+				warn!("Handling ServerErrors request with dummy response");
 				// TODO: actually return the errors
 				let errors: Vec<Vec<String>> = vec![];
 				let resp = Message::respond(&command, errors).unwrap();
@@ -228,15 +228,27 @@ impl ZeruWebsocket {
 				ctx.text(j);
 			}
 			AnnouncerStats => {
-				info!("Handling AnnouncerStats request");
+				warn!("Handling AnnouncerStats request with dummy response");
 				// TODO: actually return announcer stats
-				let stats: HashMap<String, String> = HashMap::new();
+				let mut stats: HashMap<String, _> = HashMap::new();
+				stats.insert(
+					String::from("zero://boot3rdez4rzn36x.onion:15441"),
+					crate::tracker::AnnouncerStats {
+						status: String::from("announced"),
+						num_request: 0,
+						num_success: 0,
+						num_error: 0,
+						time_request: 0.0,
+						time_last_error: 0.0,
+						time_status: 0.0,
+						last_error: String::from("Not implemented yet"),
+					});
 				let resp = Message::respond(&command, stats).unwrap();
 				let j = serde_json::to_string(&resp).unwrap();
 				ctx.text(j);
 			}
 			UserGetSettings => {
-				info!("Handling UserGetSettings");
+				warn!("Handling UserGetSettings with dummy response");
 				// TODO: actually return user settings
 				let resp = Message::respond(&command, String::new()).unwrap();
 				let j = serde_json::to_string(&resp).unwrap();

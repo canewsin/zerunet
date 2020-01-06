@@ -11,6 +11,7 @@ mod server;
 mod site;
 mod upnp;
 mod util;
+mod tracker;
 
 use std::fs::File;
 use std::io::prelude::*;
