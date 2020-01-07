@@ -1,3 +1,4 @@
+pub mod error;
 pub mod request;
 pub mod response;
 
@@ -18,8 +19,7 @@ use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
-#[derive(Debug)]
-pub struct Error {}
+use error::Error;
 
 pub async fn serve_websocket(
 	req: HttpRequest,
@@ -83,10 +83,10 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ZeruWebsocket {
 						return;
 					}
 				};
-				match self.handle_command(ctx, &command, self.site_addr.clone()) {
-					Ok(_) => {},
-					Err(err) => { handle_error(ctx, command, format!("{:?}", err)); },
-				};
+				if let Err(err) = self.handle_command(ctx, &command) {
+					handle_error(ctx, command, format!("{:?}", err));
+					return;
+				}
 			}
 			ws::Message::Binary(bin) => ctx.binary(bin),
 			_ => (),
@@ -148,19 +148,19 @@ pub struct ServerInfo {
 	// user_settings
 }
 
-fn handle_ping(ctx: &mut ws::WebsocketContext<ZeruWebsocket>, req: &Command) -> Result<(), actix_web::Error> {
+fn handle_ping(
+	ctx: &mut ws::WebsocketContext<ZeruWebsocket>,
+	req: &Command,
+) -> Result<Message, Error> {
 	trace!("Handling ping");
 	let pong = String::from("pong");
-	let resp = Message::respond(req, pong)?;
-	let j = serde_json::to_string(&resp)?;
-	ctx.text(j);
-	Ok(())
+	req.respond(pong)
 }
 
 fn handle_server_info(
 	ctx: &mut ws::WebsocketContext<ZeruWebsocket>,
 	req: &Command,
-) -> Result<(), actix_web::Error> {
+) -> Result<Message, Error> {
 	warn!("Handling ServerInfo request");
 	let server_info = ServerInfo {
 		ip_external: false,
@@ -186,11 +186,7 @@ fn handle_server_info(
 		plugins_rev: HashMap::new(),
 		// user_settings:
 	};
-	let resp = Message::respond(req, server_info)?;
-
-	let j = serde_json::to_string(&resp)?;
-	ctx.text(j);
-	Ok(())
+	req.respond(server_info)
 }
 
 fn handle_error(
@@ -213,33 +209,30 @@ impl ZeruWebsocket {
 		&mut self,
 		ctx: &mut ws::WebsocketContext<ZeruWebsocket>,
 		command: &Command,
-		addr: actix::Addr<crate::site::Site>,
 	) -> Result<(), Error> {
-		match command.cmd {
-			Ping => {
-				handle_ping(ctx, command);
-			}
-			ServerInfo => {
-				handle_server_info(ctx, command);
-			}
+		let response = match command.cmd {
+			Ping => handle_ping(ctx, command),
+			ServerInfo => handle_server_info(ctx, command),
 			SiteInfo => {
 				warn!("Handling SiteInfo request with dummy response");
 				let site_info_req = crate::site::SiteInfoRequest {};
-				let result = block_on(addr.send(site_info_req));
-				if let Ok(Ok(res)) = result {
-					let resp = Message::respond(&command, res).unwrap();
-
-					let j = serde_json::to_string(&resp).unwrap();
-					ctx.text(j);
+				let result = block_on(self.site_addr.send(site_info_req));
+				// TODO: Clean up this part
+				if result.is_err() {
+					return Err(Error {});
 				}
+				let result = result.unwrap();
+				if result.is_err() {
+					return Err(Error {});
+				}
+				let result = result.unwrap();
+				command.respond(result)
 			}
 			ServerErrors => {
 				warn!("Handling ServerErrors request with dummy response");
 				// TODO: actually return the errors
 				let errors: Vec<Vec<String>> = vec![];
-				let resp = Message::respond(&command, errors).unwrap();
-				let j = serde_json::to_string(&resp).unwrap();
-				ctx.text(j);
+				command.respond(errors)
 			}
 			AnnouncerStats => {
 				warn!("Handling AnnouncerStats request with dummy response");
@@ -258,16 +251,12 @@ impl ZeruWebsocket {
 						last_error: String::from("Not implemented yet"),
 					},
 				);
-				let resp = Message::respond(&command, stats).unwrap();
-				let j = serde_json::to_string(&resp).unwrap();
-				ctx.text(j);
+				command.respond(stats)
 			}
 			UserGetSettings => {
 				warn!("Handling UserGetSettings with dummy response");
 				// TODO: actually return user settings
-				let resp = Message::respond(&command, String::new()).unwrap();
-				let j = serde_json::to_string(&resp).unwrap();
-				ctx.text(j);
+				command.respond(String::new())
 			}
 			SiteList => {
 				info!("Handling SiteList");
@@ -279,9 +268,7 @@ impl ZeruWebsocket {
 				)
 				.unwrap()
 				.unwrap();
-				let resp = Message::respond(&command, sites).unwrap();
-				let j = serde_json::to_string(&resp).unwrap();
-				ctx.text(j);
+				command.respond(sites)
 			}
 			OptionalLimitStats => {
 				// TODO: replace dummy response with actual response
@@ -291,6 +278,7 @@ impl ZeruWebsocket {
 					used: 1000000,
 					free: 4000000,
 				};
+				command.respond(limit_stats)
 			}
 			FeedQuery => {
 				warn!("Handling FeedQuery");
@@ -300,9 +288,7 @@ impl ZeruWebsocket {
 					rows: Vec<String>,
 				}
 				let result = FeedQueryResponse { rows: Vec::new() };
-				let resp = Message::respond(&command, result).unwrap();
-				let j = serde_json::to_string(&resp).unwrap();
-				ctx.text(j);
+				command.respond(result)
 			}
 			FileGet => {
 				warn!("Handling FileGet request");
@@ -329,7 +315,7 @@ impl ZeruWebsocket {
 					Ok(f) => f,
 					Err(err) => {
 						error!("Failed to get file: {:?}", err);
-						return Err(Error{}); // TODO: respond with 404 equivalent
+						return Err(Error {}); // TODO: respond with 404 equivalent
 					}
 				};
 				let mut string = String::new();
@@ -337,20 +323,22 @@ impl ZeruWebsocket {
 					Ok(_) => {}
 					Err(_) => {
 						error!("Failed to read file to string");
-						return Err(Error{});
+						return Err(Error {});
 					} // TODO: respond with 404 equivalent
 				}
 
-				let resp = Message::respond(&command, string).unwrap();
-				let j = serde_json::to_string(&resp).unwrap();
-				ctx.text(j);
+				command.respond(string)
 			}
 			_ => {
 				let cmd = command.cmd.clone();
 				error!("Unhandled command: {:?}", cmd);
-				return Err(Error{})
+				return Err(Error {});
 			}
 		};
+
+		let j = serde_json::to_string(&response?).unwrap();
+		ctx.text(j);
+
 		Ok(())
 	}
 }

@@ -1,3 +1,5 @@
+use super::error::Error;
+use super::response::Message;
 use crate::util::is_default;
 use serde::{Deserialize, Serialize};
 
@@ -94,4 +96,11 @@ pub struct Command {
 	pub id: isize,
 	#[serde(skip_serializing_if = "is_default", default)]
 	pub wrapper_nonce: String,
+}
+
+impl Command {
+	pub fn respond<T: Serialize>(&self, body: T) -> Result<Message, Error> {
+		let resp = Message::new(self.id, serde_json::to_value(body)?);
+		Ok(resp)
+	}
 }

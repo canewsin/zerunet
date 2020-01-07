@@ -1,4 +1,3 @@
-use crate::error::Error;
 use crate::util::is_default;
 use serde::{Deserialize, Serialize};
 
@@ -19,11 +18,11 @@ pub enum MessageType {
 }
 
 impl Message {
-	pub fn respond<T: Serialize>(req: &super::request::Command, body: T) -> Result<Message, Error> {
-		Ok(Message {
+	pub fn new(id: isize, body: serde_json::Value) -> Message {
+		Message {
 			cmd: MessageType::Response,
-			to: req.id,
-			result: serde_json::to_value(body)?,
-		})
+			to: id,
+			result: body,
+		}
 	}
 }
