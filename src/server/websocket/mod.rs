@@ -5,7 +5,7 @@ use crate::site::site_manager::{Lookup, SiteManager};
 use actix::{Actor, Addr, StreamHandler};
 use actix_web::{
 	web::{Data, Payload, Query},
-	Error, HttpRequest, HttpResponse, Result,
+	HttpRequest, HttpResponse, Result,
 };
 use actix_web_actors::ws;
 use futures::executor::block_on;
@@ -18,12 +18,15 @@ use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
+#[derive(Debug)]
+pub struct Error {}
+
 pub async fn serve_websocket(
 	req: HttpRequest,
 	query: Query<HashMap<String, String>>,
 	data: Data<crate::server::ZeroServer>,
 	stream: Payload,
-) -> Result<HttpResponse, Error> {
+) -> Result<HttpResponse, actix_web::Error> {
 	info!("Serving websocket");
 	let wrapper_key = query.get("wrapper_key").unwrap();
 
@@ -34,7 +37,7 @@ pub async fn serve_websocket(
 		Ok(Ok(resp)) => resp,
 		_ => {
 			warn!("Websocket established, but wrapper key invalid");
-			return Err(Error::from(()));
+			return Err(actix_web::Error::from(()));
 		}
 	};
 
@@ -80,7 +83,10 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ZeruWebsocket {
 						return;
 					}
 				};
-				self.handle_command(ctx, command, self.site_addr.clone());
+				match self.handle_command(ctx, &command, self.site_addr.clone()) {
+					Ok(_) => {},
+					Err(err) => { handle_error(ctx, command, format!("{:?}", err)); },
+				};
 			}
 			ws::Message::Binary(bin) => ctx.binary(bin),
 			_ => (),
@@ -142,7 +148,7 @@ pub struct ServerInfo {
 	// user_settings
 }
 
-fn handle_ping(ctx: &mut ws::WebsocketContext<ZeruWebsocket>, req: &Command) -> Result<(), Error> {
+fn handle_ping(ctx: &mut ws::WebsocketContext<ZeruWebsocket>, req: &Command) -> Result<(), actix_web::Error> {
 	trace!("Handling ping");
 	let pong = String::from("pong");
 	let resp = Message::respond(req, pong)?;
@@ -154,7 +160,7 @@ fn handle_ping(ctx: &mut ws::WebsocketContext<ZeruWebsocket>, req: &Command) -> 
 fn handle_server_info(
 	ctx: &mut ws::WebsocketContext<ZeruWebsocket>,
 	req: &Command,
-) -> Result<(), Error> {
+) -> Result<(), actix_web::Error> {
 	warn!("Handling ServerInfo request");
 	let server_info = ServerInfo {
 		ip_external: false,
@@ -191,7 +197,7 @@ fn handle_error(
 	ctx: &mut ws::WebsocketContext<ZeruWebsocket>,
 	command: Command,
 	text: String,
-) -> Result<(), Error> {
+) -> Result<(), actix_web::Error> {
 	let error = WrapperCommand {
 		cmd: WrapperCommandType::Error,
 		to: command.id,
@@ -206,17 +212,15 @@ impl ZeruWebsocket {
 	fn handle_command(
 		&mut self,
 		ctx: &mut ws::WebsocketContext<ZeruWebsocket>,
-		command: Command,
+		command: &Command,
 		addr: actix::Addr<crate::site::Site>,
-	) {
+	) -> Result<(), Error> {
 		match command.cmd {
 			Ping => {
-				// ctx.spawn(|c| {
-				handle_ping(ctx, &command);
-				// });
+				handle_ping(ctx, command);
 			}
 			ServerInfo => {
-				handle_server_info(ctx, &command);
+				handle_server_info(ctx, command);
 			}
 			SiteInfo => {
 				warn!("Handling SiteInfo request with dummy response");
@@ -325,7 +329,7 @@ impl ZeruWebsocket {
 					Ok(f) => f,
 					Err(err) => {
 						error!("Failed to get file: {:?}", err);
-						return (); // TODO: respond with 404 equivalent
+						return Err(Error{}); // TODO: respond with 404 equivalent
 					}
 				};
 				let mut string = String::new();
@@ -333,7 +337,7 @@ impl ZeruWebsocket {
 					Ok(_) => {}
 					Err(_) => {
 						error!("Failed to read file to string");
-						return ();
+						return Err(Error{});
 					} // TODO: respond with 404 equivalent
 				}
 
@@ -344,14 +348,9 @@ impl ZeruWebsocket {
 			_ => {
 				let cmd = command.cmd.clone();
 				error!("Unhandled command: {:?}", cmd);
-				handle_error(ctx, command, format!("Unhandled command: {:?}", cmd));
+				return Err(Error{})
 			}
 		};
-		// match command.cmd {
-		//   UserGetGlobalSettings => info!("userGetGlobal"),
-		//   // ChannelJoin => info!("channelJoin"),
-		//   // SiteInfo => info!("siteInfo"),
-		//   _ => error!("Unknown command: '{:?}'", command.cmd),
-		// }
+		Ok(())
 	}
 }
