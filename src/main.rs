@@ -35,11 +35,13 @@ use site::site_manager::start_site_manager;
 //      --data-raw "mem,host=host1 used_percent=27"
 
 fn main() {
-	let data_path = PathBuf::from("../ZeroNet/data/");
 	// influx_logger::init();
 	pretty_env_logger::init_timed();
 
-	environment::get_env();
+	let env = match environment::get_env() {
+		Ok(env) => env,
+		Err(err) => panic!("{:?}", err),
+	};
 
 	if false {
 		let punch = upnp::UPnBrunch::new()
@@ -69,7 +71,7 @@ fn main() {
 	info!("Starting zerunet server.");
 	std::thread::spawn(move || {
 		let system = actix::System::new("Server system");
-		match block_on(server::run(site_manager_addr)) {
+		match block_on(server::run(&env, site_manager_addr)) {
 			Ok(_) => info!("zerunet server exited with ok"),
 			Err(err) => error!("zerunet server exited with {:?}", err),
 		}

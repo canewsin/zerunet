@@ -1,12 +1,30 @@
 use clap::{App, Arg, SubCommand};
+use std::path::PathBuf;
+use std::str::FromStr;
 
-pub struct Environment {}
+#[derive(Debug)]
+pub struct Environment {
+	pub data_path: PathBuf,
+}
 
-pub fn get_env() -> Environment {
-	let matches = App::new("gcrunner")
-		.version("0.1")
+#[derive(Debug)]
+pub struct Error {
+	string: String,
+}
+
+impl Error {
+	fn from_str(string: &str) -> Error {
+		Error {
+			string: String::from(string),
+		}
+	}
+}
+
+pub fn get_env() -> Result<Environment, Error> {
+	let matches = App::new("zerunet")
+		.version("0.1.0")
 		.author("Ansho Rei <anshorei@zeroid.bit>")
-		.about("Does awesome things")
+		.about("A ZeroNet implementation written in Rust.")
 		.args(&[
 			// Should probably be removed in favor of environment flags
 			Arg::with_name("VERBOSE")
@@ -133,6 +151,23 @@ pub fn get_env() -> Environment {
 				.default_value("15441")
 				.help("Hidden service port in Tor always mode"),
 		])
+		.subcommands(vec![
+			SubCommand::with_name("siteCreate"),
+			SubCommand::with_name("siteNeedFile"),
+			SubCommand::with_name("siteDownload"),
+			SubCommand::with_name("siteSign"),
+			SubCommand::with_name("sitePublish"),
+			SubCommand::with_name("siteVerify"),
+			SubCommand::with_name("siteCmd"),
+			SubCommand::with_name("dbRebuild"),
+			SubCommand::with_name("dbQuery"),
+		])
 		.get_matches();
-	Environment {}
+
+	let data_path = PathBuf::from_str(matches.value_of("DATA_DIR").unwrap()).unwrap();
+	if !data_path.is_dir() {
+		return Err(Error::from_str("DATA_DIR does not exist"));
+	}
+	let env = Environment { data_path };
+	Ok(env)
 }

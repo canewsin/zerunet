@@ -46,6 +46,7 @@ pub async fn serve_websocket(
 		site_manager: data.site_manager.clone(),
 		site_addr: addr,
 		address: address,
+		data_path: data.data_path.clone(),
 	};
 
 	let resp = ws::start(websocket, &req, stream);
@@ -56,6 +57,7 @@ struct ZeruWebsocket {
 	site_manager: Addr<SiteManager>,
 	site_addr: actix::Addr<crate::site::Site>,
 	address: crate::site::address::Address,
+	data_path: PathBuf,
 }
 
 impl Actor for ZeruWebsocket {
@@ -305,7 +307,7 @@ impl ZeruWebsocket {
 						crate::site::FileGetRequest::default()
 					}
 				};
-				let mut path = PathBuf::from("../ZeroNet/data/"); // TODO: use data path env var
+				let mut path = self.data_path.clone(); // TODO: use data path env var
 				path.push(Path::new(&format!(
 					"{}/{}",
 					self.address.to_string(),

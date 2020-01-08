@@ -4,12 +4,13 @@ use actix_web::{
 	App, HttpRequest, HttpResponse, HttpServer, Responder, Result,
 };
 use log::*;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-
 mod site;
 pub mod websocket;
 mod wrapper;
 
+use crate::environment::Environment;
 use crate::site::site_manager::SiteManager;
 use futures::executor::block_on;
 use site::serve_file;
@@ -21,6 +22,7 @@ const SERVER_URL: &str = &"127.0.0.1";
 const SERVER_PORT: usize = 42110;
 
 pub struct ZeroServer {
+	data_path: PathBuf,
 	site_manager: actix::Addr<SiteManager>,
 	wrapper_nonces: Arc<Mutex<HashSet<String>>>,
 }
@@ -29,11 +31,13 @@ async fn index(data: Data<ZeroServer>) -> Result<String> {
 	Ok(format!("Welcome!"))
 }
 
-pub async fn run(site_manager: Addr<SiteManager>) -> std::io::Result<()> {
+pub async fn run(env: &Environment, site_manager: Addr<SiteManager>) -> std::io::Result<()> {
 	let nonces = Arc::new(Mutex::new(HashSet::new()));
+	let data_path = env.data_path.clone(); // TODO: unnecessary double clone
 
 	HttpServer::new(move || {
 		let shared_data = ZeroServer {
+			data_path: data_path.clone(),
 			site_manager: site_manager.clone(),
 			wrapper_nonces: nonces.clone(),
 		};

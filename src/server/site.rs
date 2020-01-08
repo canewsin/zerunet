@@ -22,11 +22,12 @@ pub fn serve_file(
 	if address == "Test" {
 		file_path.push(&Path::new("test/wrapper/public"));
 	} else {
-		file_path = PathBuf::from("../ZeroNet/data/");
+		file_path = data.data_path.clone();
 		file_path.push(&Path::new(address));
 	}
 	file_path.push(&Path::new(inner_path));
 
+	// TODO: if data_path/address does not exist, create it
 	if file_path.is_dir() {
 		file_path = file_path.join(PathBuf::from("index.html"));
 	}

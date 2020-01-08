@@ -5,6 +5,7 @@ pub mod site_storage;
 
 use crate::error::Error;
 use crate::peer::Peer;
+use crate::server::websocket::ZeruWebsocket;
 use actix;
 use actix::prelude::*;
 use address::Address;
