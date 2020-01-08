@@ -3,10 +3,12 @@ mod site_info;
 pub mod site_manager;
 pub mod site_storage;
 
+use crate::error::Error;
 use crate::peer::Peer;
 use actix;
 use actix::prelude::*;
 use address::Address;
+use futures::executor::block_on;
 use log::*;
 use serde_derive::{Deserialize, Serialize};
 use site_info::{SiteInfo, SiteSettings};
@@ -146,7 +148,7 @@ impl Handler<AddPeer> for Site {
 	}
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct FileGetRequest {
 	#[serde(default)]
 	pub inner_path: String,
@@ -159,13 +161,22 @@ pub struct FileGetRequest {
 }
 
 impl Message for FileGetRequest {
-	type Result = Result<bool, ()>;
+	type Result = Result<bool, Error>;
 }
 
 impl Handler<FileGetRequest> for Site {
-	type Result = Result<bool, ()>;
+	type Result = Result<bool, Error>;
 
 	fn handle(&mut self, msg: FileGetRequest, _ctx: &mut Context<Self>) -> Self::Result {
-		return Ok(true);
+		if self.peers.len() == 0 {
+			trace!("No peers for {}", self.address.to_string());
+			return Ok(false);
+		}
+		for (key, peer) in self.peers.iter() {
+			if block_on(peer.send(msg.clone())).is_ok() {
+				return Ok(true);
+			}
+		}
+		return Ok(false);
 	}
 }

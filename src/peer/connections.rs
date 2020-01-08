@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::net::TcpStream;
 
 pub enum PeerAddr {
@@ -8,7 +9,17 @@ pub enum PeerAddr {
 	Loki(String),
 }
 
-pub trait Connection {}
+pub trait Connection {
+	fn connect() -> Self
+	where
+		Self: Sized;
+	// Send data to connection
+	fn send(&self, message: String) -> Result<(), ()>;
+	// Stream file to connection without msgpacking
+	// fn send_rawfile(&self, file_path: String, read_bytes: usize) -> Result<(),()>;
+	// fn request(&self, cmd: String, params: BTreeMap<String, String>) -> Result<(),()>;
+	// fn ping(&self) -> Result<(),()>;
+}
 
 pub fn connect(address: PeerAddr) -> Result<impl Connection, ()> {
 	match address {
@@ -30,4 +41,11 @@ impl TcpConnection {
 	}
 }
 
-impl Connection for TcpConnection {}
+impl Connection for TcpConnection {
+	fn connect() -> TcpConnection {
+		TcpConnection::connect("ip", 0)
+	}
+	fn send(&self, message: String) -> Result<(), ()> {
+		Ok(())
+	}
+}
