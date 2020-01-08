@@ -71,9 +71,9 @@ impl FromStr for Address {
 				address: String::from(string),
 			});
 		}
-		if s.len() != 34 || !s.starts_with('1') {
+		if s.len() > 34 || s.len() < 33 || !s.starts_with('1') {
 			error!(
-				"Length should be 34, was {}, and start with a '1'.",
+				"Length should be 34 or 33, was {}, and start with a '1'.",
 				string.len(),
 			);
 			return Err(Error::FileNotFound);
