@@ -305,12 +305,15 @@ impl ZeruWebsocket {
 						crate::site::FileGetRequest::default()
 					}
 				};
-				let mut path = PathBuf::from("../ZeroNet/data/");
+				let mut path = PathBuf::from("../ZeroNet/data/"); // TODO: use data path env var
 				path.push(Path::new(&format!(
 					"{}/{}",
 					self.address.to_string(),
 					msg.inner_path
 				)));
+				if !path.is_file() {
+					block_on(self.site_addr.send(msg));
+				}
 				let mut file = match File::open(path) {
 					Ok(f) => f,
 					Err(err) => {
