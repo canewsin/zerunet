@@ -69,6 +69,8 @@ pub struct Content {
 	user_contents: UserContents,
 	#[serde(skip_serializing_if = "is_default")]
 	viewport: String,
+	#[serde(skip_serializing_if = "is_default")]
+	settings: BTreeMap<String, serde_json::Value>,
 
 	#[serde(flatten)]
 	other: BTreeMap<String, Value>,
