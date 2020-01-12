@@ -53,7 +53,7 @@ pub async fn serve_websocket(
 	resp
 }
 
-struct ZeruWebsocket {
+pub struct ZeruWebsocket {
 	site_manager: Addr<SiteManager>,
 	site_addr: actix::Addr<crate::site::Site>,
 	address: crate::site::address::Address,

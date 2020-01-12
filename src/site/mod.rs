@@ -14,11 +14,13 @@ use log::*;
 use serde_derive::{Deserialize, Serialize};
 use site_info::{SiteInfo, SiteSettings};
 use std::collections::HashMap;
+use crate::server::websocket::ZeruWebsocket;
 
 pub struct Site {
 	address: Address,
 	peers: HashMap<String, Addr<Peer>>,
 	settings: SiteSettings,
+	listeners: Vec<Addr<ZeruWebsocket>>,
 }
 
 impl Site {
@@ -27,6 +29,7 @@ impl Site {
 			address,
 			peers: HashMap::new(),
 			settings: SiteSettings::default(),
+			listeners: Vec::new(),
 		}
 	}
 	pub fn load_settings() {}
