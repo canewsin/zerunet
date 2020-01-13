@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 use std::net::TcpStream;
 
-pub enum PeerAddr {
+#[derive(Debug)]
+pub enum PeerAddress {
 	IPV4(String, usize),
 	IPV6(String, usize),
 	Onion(String),
@@ -21,9 +22,9 @@ pub trait Connection {
 	// fn ping(&self) -> Result<(),()>;
 }
 
-pub fn connect(address: PeerAddr) -> Result<impl Connection, ()> {
+pub fn connect(address: PeerAddress) -> Result<impl Connection, ()> {
 	match address {
-		PeerAddr::IPV4(ip, port) | PeerAddr::IPV6(ip, port) => {
+		PeerAddress::IPV4(ip, port) | PeerAddress::IPV6(ip, port) => {
 			return Ok(TcpConnection::connect(&ip, port))
 		}
 		_ => return Err(()),

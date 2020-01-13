@@ -1,7 +1,8 @@
-mod connections;
+pub mod connections;
 pub mod peer_manager;
 
 use crate::error::Error;
+use crate::peer::connections::PeerAddress;
 use crate::site::address::Address;
 use crate::util::is_default;
 use actix::{prelude::*, Actor};
@@ -12,6 +13,7 @@ use log::*;
 use serde::{Deserialize, Serialize};
 
 pub struct Peer {
+	address: PeerAddress,
 	connection: Option<Box<dyn Connection>>,
 	reputation: isize,
 	time_found: DateTime<Utc>,
@@ -25,8 +27,9 @@ pub struct Peer {
 }
 
 impl Peer {
-	pub fn new() -> Peer {
+	pub fn new(address: PeerAddress) -> Peer {
 		Peer {
+			address,
 			connection: None,
 			reputation: 0,
 			time_found: Utc::now(),
@@ -39,12 +42,22 @@ impl Peer {
 			errors: 0,
 		}
 	}
-	pub fn connect(&mut self) {
+	pub fn connect(&mut self) -> Result<(), ()> {
+		if self.connection.is_some() {
+			return Ok(());
+		}
 		error!("Connecting to peer not implemented");
+		return Err(());
 	}
 	pub fn request(&mut self) {}
-	pub fn get_file(&mut self) {
+	pub fn get_file(&mut self) -> Result<(), ()> {
+		self.connect()?;
+		if let Some(connection) = &mut self.connection {
+			connection.send(String::from("test"));
+		}
+
 		error!("Getting file from peer not implemented");
+		Err(())
 	}
 	pub fn ping() {}
 	fn pex() {}

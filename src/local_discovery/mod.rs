@@ -6,6 +6,7 @@ use futures::executor::block_on;
 use log::*;
 use std::net::UdpSocket;
 
+use crate::peer::connections::PeerAddress;
 use crate::peer::peer_manager::PeerManager;
 use crate::site::site_manager::SiteManager;
 
@@ -58,7 +59,9 @@ pub fn start_local_discovery(
 			.for_each(|ip| local_ips.push(ip.ip().to_string()));
 	}
 	info!("Ips {:?}", &local_ips);
-	let prob_ip = local_ips.iter().find(|ip| ip.starts_with("192.168.1"));
+	let prob_ip = local_ips
+		.iter()
+		.find(|ip| ip.starts_with("192.168.1") || ip.starts_with("10.42."));
 	if prob_ip.is_none() {
 		error!("Could not find local ip!");
 		return Err(Error::ErrorFindingIP);
@@ -227,6 +230,7 @@ impl LocalDiscoveryServer {
 		self
 			.peer_manager
 			.do_send(crate::peer::peer_manager::UpdatePeer {
+				address: PeerAddress::IPV4(msg.sender.ip.clone(), msg.sender.port),
 				peer_id: msg.sender.peer_id.clone(),
 				sites: msg.params.sites.iter().map(|a| a.to_vec()).collect(),
 			});

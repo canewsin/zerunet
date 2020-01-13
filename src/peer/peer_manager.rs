@@ -1,3 +1,4 @@
+use super::connections::PeerAddress;
 use super::Peer;
 use crate::error::Error;
 use crate::site::site_manager::SiteManager;
@@ -42,16 +43,29 @@ impl PeerManager {
 			peers: HashMap::new(),
 		}
 	}
+	fn add(&mut self, peer_id: String, address: PeerAddress) -> Result<Addr<Peer>, Error> {
+		if let Some(addr) = self.peers.get(&peer_id) {
+			warn!("Peer was already known");
+			// TODO: update the address
+			Ok(addr.clone())
+		} else {
+			info!(
+				"Spinning up actor for peer {} with address {:?}",
+				&peer_id, address
+			);
+			let peer = Peer::new(address);
+			let addr = peer.start();
+			self.peers.insert(peer_id, addr.clone());
+			Ok(addr)
+		}
+	}
 	// Retrieves the peer's address, spinning up a new actor if the peer does not exist yet
 	fn get(&mut self, peer_id: String) -> Result<Addr<Peer>, Error> {
 		if let Some(addr) = self.peers.get(&peer_id) {
 			Ok(addr.clone())
 		} else {
-			info!("Spinning up actor for peer {}", &peer_id);
-			let peer = Peer::new();
-			let addr = peer.start();
-			self.peers.insert(peer_id, addr.clone());
-			Ok(addr)
+			error!("Peer not found");
+			Err(Error::MissingError)
 		}
 	}
 }
@@ -80,6 +94,7 @@ impl Handler<PeerLookup> for PeerManager {
 }
 
 pub struct UpdatePeer {
+	pub address: PeerAddress,
 	pub peer_id: String,
 	pub sites: Vec<Vec<u8>>,
 }
@@ -92,7 +107,7 @@ impl Handler<UpdatePeer> for PeerManager {
 	type Result = Result<(), Error>;
 
 	fn handle(&mut self, msg: UpdatePeer, _ctx: &mut Context<Self>) -> Self::Result {
-		let addr = self.get(msg.peer_id.clone())?;
+		let addr = self.add(msg.peer_id.clone(), msg.address)?;
 		self
 			.site_manager
 			.do_send(crate::site::site_manager::AddPeer {
