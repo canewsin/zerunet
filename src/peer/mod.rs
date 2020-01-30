@@ -2,15 +2,16 @@ pub mod connections;
 pub mod peer_manager;
 
 use crate::error::Error;
-use crate::peer::connections::PeerAddress;
 use crate::site::address::Address;
 use crate::util::is_default;
 use actix::{prelude::*, Actor};
 use chrono::{DateTime, Duration, Utc};
-use connections::Connection;
+use connections::{PeerAddress, Connection};
 use ipnetwork::IpNetwork;
 use log::*;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::io::Write;
 
 pub struct Peer {
 	address: PeerAddress,
@@ -46,20 +47,63 @@ impl Peer {
 		if self.connection.is_some() {
 			return Ok(());
 		}
-		error!("Connecting to peer not implemented");
-		return Err(());
+		self.connection = Some(self.address.connect()?);
+		Ok(())
 	}
 	pub fn request(&mut self) {}
-	pub fn get_file(&mut self) -> Result<(), ()> {
+	pub fn get_file(&mut self, address: &Address, inner_path: &String) -> Result<(), ()> {
 		self.connect()?;
 		if let Some(connection) = &mut self.connection {
-			connection.send(String::from("test"));
+			let mut params = HashMap::new();
+			params.insert(String::from("site"), serde_json::json!(address.to_string()));
+			params.insert(String::from("location"), serde_json::json!(0));
+			params.insert(String::from("inner_path"), serde_json::json!(inner_path));
+			// {'cmd': 'getHashfield', 'req_id': 1, 'params': {'site': '1CWkZv7fQAKxTVjZVrLZ8VHcrN6YGGcdky'}}
+			let msg = PeerMessage {
+				cmd: String::from("getFile"),
+				to: 0,
+				req_id: 1,
+				params,
+				zerunet: true,
+				body: serde_bytes::ByteBuf::new(),
+			};
+			let response = connection.send(msg).unwrap();
+			let mut path = std::path::PathBuf::from("/home/crolsi/Programs/zerunet/data/");
+			path.push(&address.to_string());
+			path.push(&inner_path);
+			trace!("{:?}", std::fs::create_dir_all(path.parent().unwrap()));
+			let mut file = match std::fs::File::create(&path) {
+				Ok(f) => f,
+				Err(err) => {
+					error!("Error creating '{:?}': {:?}", &path, err);
+					return Err(());
+				}
+			};
+			file.write_all(&response.body);
 		}
 
-		error!("Getting file from peer not implemented");
+		warn!("Getting file from peer not fully implemented");
 		Err(())
 	}
-	pub fn ping() {}
+	pub fn ping(&mut self) -> Result<(), ()> {
+		self.connect()?;
+		if let Some(connection) = &mut self.connection {
+			let mut params = HashMap::new();
+			let msg = PeerMessage {
+				cmd: String::from("ping"),
+				to: 0,
+				req_id: 1,
+				params,
+				zerunet: true,
+				body: serde_bytes::ByteBuf::new(),
+			};
+			let res = connection.send(msg);
+			println!("{:?}", res);
+		}
+
+		error!("Pinging peer not implemented");
+		Err(())
+	}
 	fn pex() {}
 	fn list_modified() {}
 	fn update_hashfield() {}
@@ -79,28 +123,42 @@ impl Actor for Peer {
 pub enum PeerCommand {
 	StreamFile,
 	GetFile,
+	GetHashfield,
 	Response,
 	Handshake,
+	Ping,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PeerMessage {
-	cmd: PeerCommand,
+	cmd: String,
 	#[serde(default, skip_serializing_if = "is_default")]
-	to: String,
+	to: usize,
+	#[serde(default, skip_serializing_if = "is_default")]
+	req_id: usize,
+	#[serde(default, skip_serializing_if = "is_default")]
+	params: HashMap<String, serde_json::Value>,
+	#[serde(default)]
+	zerunet: bool,
+	#[serde(default, skip_serializing_if = "is_default")]
+	body: serde_bytes::ByteBuf,
 }
 
-impl Message for PeerMessage {
-	type Result = Result<(), ()>;
+pub struct FileGetRequest {
+	pub inner_path: String,
+	pub site_address: Address,
 }
 
-use crate::site::FileGetRequest;
+impl Message for FileGetRequest {
+	type Result = Result<bool, Error>;
+}
+
 impl Handler<FileGetRequest> for Peer {
 	type Result = Result<bool, Error>;
 
 	fn handle(&mut self, msg: FileGetRequest, _ctx: &mut Context<Self>) -> Self::Result {
 		self.connect();
-		self.get_file();
+		self.get_file(&msg.site_address, &msg.inner_path);
 
 		Ok(true)
 	}

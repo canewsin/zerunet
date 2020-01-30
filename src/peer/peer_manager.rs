@@ -45,7 +45,7 @@ impl PeerManager {
 	}
 	fn add(&mut self, peer_id: String, address: PeerAddress) -> Result<Addr<Peer>, Error> {
 		if let Some(addr) = self.peers.get(&peer_id) {
-			warn!("Peer was already known");
+			trace!("Peer {} was already known", &peer_id);
 			// TODO: update the address
 			Ok(addr.clone())
 		} else {

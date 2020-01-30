@@ -1,4 +1,8 @@
+use super::PeerMessage;
+use crate::error::Error;
+use log::*;
 use std::collections::BTreeMap;
+use std::io::{Read, Write};
 use std::net::TcpStream;
 
 #[derive(Debug)]
@@ -11,23 +15,24 @@ pub enum PeerAddress {
 }
 
 pub trait Connection {
-	fn connect() -> Self
-	where
-		Self: Sized;
 	// Send data to connection
-	fn send(&self, message: String) -> Result<(), ()>;
+	fn send(&mut self, message: PeerMessage) -> Result<PeerMessage, Error>;
 	// Stream file to connection without msgpacking
 	// fn send_rawfile(&self, file_path: String, read_bytes: usize) -> Result<(),()>;
+	// TODO: Split up PeerMessage into Request and Response types? Or just have this one use send?
 	// fn request(&self, cmd: String, params: BTreeMap<String, String>) -> Result<(),()>;
 	// fn ping(&self) -> Result<(),()>;
+	fn message_loop(&mut self) -> Result<PeerMessage, Error>;
 }
 
-pub fn connect(address: PeerAddress) -> Result<impl Connection, ()> {
-	match address {
-		PeerAddress::IPV4(ip, port) | PeerAddress::IPV6(ip, port) => {
-			return Ok(TcpConnection::connect(&ip, port))
+impl PeerAddress {
+	pub fn connect(&self) -> Result<Box<dyn Connection>, ()> {
+		match self {
+			PeerAddress::IPV4(ip, port) | PeerAddress::IPV6(ip, port) => {
+				return Ok(Box::new(TcpConnection::connect(&ip, *port)))
+			}
+			_ => return Err(()),
 		}
-		_ => return Err(()),
 	}
 }
 
@@ -37,16 +42,30 @@ pub struct TcpConnection {
 
 impl TcpConnection {
 	pub fn connect(ip: &str, port: usize) -> TcpConnection {
+		trace!("Connecting to {}:{}", &ip, port);
 		let socket = TcpStream::connect(format!("{}:{}", ip, port)).unwrap();
+		socket
+			.set_read_timeout(Some(std::time::Duration::new(1, 0)))
+			.unwrap();
 		TcpConnection { socket }
 	}
 }
 
 impl Connection for TcpConnection {
-	fn connect() -> TcpConnection {
-		TcpConnection::connect("ip", 0)
+	fn send(&mut self, msg: PeerMessage) -> Result<PeerMessage, Error> {
+		let bytes = rmp_serde::to_vec_named(&msg)?;
+		self.socket.write_all(&bytes)?;
+		trace!("Wrote \"{:?}\" to socket.", String::from_utf8_lossy(&bytes));
+		self.message_loop()
 	}
-	fn send(&self, message: String) -> Result<(), ()> {
-		Ok(())
+	fn message_loop(&mut self) -> Result<PeerMessage, Error> {
+		let response: Result<PeerMessage, _> = rmp_serde::from_read(&mut self.socket);
+		match response {
+			Ok(msg) => Ok(msg),
+			Err(err) => {
+				error!("Encountered error receiving response {:?}", err);
+				Err(Error::MissingError)
+			}
+		}
 	}
 }
