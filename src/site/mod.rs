@@ -14,7 +14,6 @@ use log::*;
 use serde_derive::{Deserialize, Serialize};
 use site_info::{SiteInfo, SiteSettings};
 use std::collections::HashMap;
-use crate::server::websocket::ZeruWebsocket;
 
 pub struct Site {
 	address: Address,
@@ -24,12 +23,12 @@ pub struct Site {
 }
 
 impl Site {
-	pub fn new(address: Address) -> Site {
+	pub fn new(listeners: Vec<Addr<ZeruWebsocket>>, address: Address) -> Site {
 		Site {
 			address,
 			peers: HashMap::new(),
 			settings: SiteSettings::default(),
-			listeners: Vec::new(),
+			listeners,
 		}
 	}
 	pub fn load_settings() {}
@@ -177,10 +176,16 @@ impl Handler<FileGetRequest> for Site {
 			return Ok(false);
 		}
 		for (key, peer) in self.peers.iter() {
-			if block_on(peer.send(msg.clone())).is_ok() {
+			let req = crate::peer::FileGetRequest {
+				inner_path: msg.inner_path.clone(),
+				site_address: self.address.clone(),
+			};
+			if block_on(peer.send(req)).is_ok() {
 				return Ok(true);
 			}
 		}
 		return Ok(false);
 	}
 }
+
+// TODO: handle channel join messages

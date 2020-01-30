@@ -6,6 +6,7 @@ use chrono::{DateTime, Utc};
 use log::*;
 use std::collections::HashMap;
 
+use crate::server::websocket::ZeruWebsocket;
 use futures::future::join_all;
 use futures::future::{FutureExt, TryFutureExt};
 use std::sync::mpsc::{channel, RecvError};
@@ -33,6 +34,7 @@ pub struct SiteManager {
 	sites: HashMap<Address, Addr<Site>>,
 	nonce: HashMap<String, Address>,
 	updated_at: DateTime<Utc>,
+	listeners: Vec<Addr<ZeruWebsocket>>,
 }
 
 impl SiteManager {
@@ -41,6 +43,7 @@ impl SiteManager {
 			sites: HashMap::new(),
 			nonce: HashMap::new(),
 			updated_at: Utc::now(),
+			listeners: Vec::new(),
 		}
 	}
 	pub fn get(&mut self, address: Address) -> Result<(Address, Addr<Site>), Error> {
@@ -51,7 +54,7 @@ impl SiteManager {
 				"Spinning up actor for zero://{}",
 				address.get_address_short()
 			);
-			let site = Site::new(address.clone());
+			let site = Site::new(self.listeners.clone(), address.clone());
 			let addr = site.start();
 			// TODO: Decide whether to spawn actors in syncArbiter
 			// let addr = SyncArbiter::start(1, || Site::new());
@@ -198,7 +201,7 @@ impl Handler<AddWrapperKey> for SiteManager {
 	type Result = Result<(), Error>;
 
 	fn handle(&mut self, msg: AddWrapperKey, _ctx: &mut Context<Self>) -> Self::Result {
-		let addr = self.get(msg.address.clone())?;
+		let _ = self.get(msg.address.clone())?;
 		self
 			.nonce
 			.insert(msg.wrapper_key.clone(), msg.address.clone());
