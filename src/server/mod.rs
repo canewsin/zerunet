@@ -28,7 +28,7 @@ pub struct ZeroServer {
 }
 
 async fn index(data: Data<ZeroServer>) -> Result<String> {
-	Ok(format!("Welcome!"))
+	Ok(format!("ZeruNet serving from {:?}", data.data_path))
 }
 
 pub async fn run(env: &Environment, site_manager: Addr<SiteManager>) -> std::io::Result<()> {
