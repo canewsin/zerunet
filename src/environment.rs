@@ -5,6 +5,9 @@ use std::str::FromStr;
 #[derive(Debug)]
 pub struct Environment {
 	pub data_path: PathBuf,
+	pub broadcast_port: usize,
+	pub ui_ip: String,
+	pub ui_port: usize,
 }
 
 #[derive(Debug)]
@@ -17,6 +20,12 @@ impl Error {
 		Error {
 			string: String::from(string),
 		}
+	}
+}
+
+impl From<std::num::ParseIntError> for Error {
+	fn from(err: std::num::ParseIntError) -> Error {
+		Error::from_str(&format!("{:?}", err))
 	}
 }
 
@@ -150,6 +159,10 @@ pub fn get_env() -> Result<Environment, Error> {
 				.long("tor_hs_port")
 				.default_value("15441")
 				.help("Hidden service port in Tor always mode"),
+			Arg::with_name("BROADCAST_PORT")
+				.long("broadcast_port")
+				.default_value("1544")
+				.help("Port to broadcast local discovery messages"),
 		])
 		.subcommands(vec![
 			SubCommand::with_name("siteCreate"),
@@ -168,6 +181,14 @@ pub fn get_env() -> Result<Environment, Error> {
 	if !data_path.is_dir() {
 		return Err(Error::from_str("DATA_DIR does not exist"));
 	}
-	let env = Environment { data_path };
+	let ui_ip = matches.value_of("UI_IP").unwrap();
+	let ui_port: usize = matches.value_of("UI_PORT").unwrap().parse()?;
+	let broadcast_port: usize = matches.value_of("BROADCAST_PORT").unwrap().parse()?;
+	let env = Environment {
+		data_path,
+		broadcast_port,
+		ui_ip: String::from(ui_ip),
+		ui_port,
+	};
 	Ok(env)
 }
