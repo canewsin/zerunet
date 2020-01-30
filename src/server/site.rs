@@ -18,18 +18,22 @@ pub fn serve_file(
 ) -> Result<NamedFile, Error> {
 	let mut file_path = PathBuf::new();
 	let address = req.match_info().query("address");
-	let inner_path = req.match_info().query("inner_path");
+	let mut inner_path = String::from(req.match_info().query("inner_path"));
 	if address == "Test" {
 		file_path.push(&Path::new("test/wrapper/public"));
 	} else {
 		file_path = data.data_path.clone();
 		file_path.push(&Path::new(address));
 	}
-	file_path.push(&Path::new(inner_path));
+	file_path.push(&Path::new(&inner_path));
 
-	// TODO: if data_path/address does not exist, create it
-	if file_path.is_dir() {
+	// TODO: what if a file doesn't have an extension?
+	if file_path.is_dir() || !inner_path.contains(".") {
 		file_path = file_path.join(PathBuf::from("index.html"));
+		// TODO: should we edit inner_path here? or just create a new one?
+		inner_path = format!("{}/index.html", &inner_path)
+			.trim_start_matches("/")
+			.to_string();
 	}
 
 	trace!(
