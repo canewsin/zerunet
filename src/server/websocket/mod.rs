@@ -258,7 +258,10 @@ impl ZeruWebsocket {
 			UserGetSettings => {
 				warn!("Handling UserGetSettings with dummy response");
 				// TODO: actually return user settings
-				command.respond(String::new())
+
+				let mut map = serde_json::Map::new();
+				map.insert(String::from("sites_section_hide"), serde_json::Value::Null);
+				command.respond(serde_json::Value::Object(map))
 			}
 			SiteList => {
 				info!("Handling SiteList");
@@ -333,6 +336,18 @@ impl ZeruWebsocket {
 				}
 
 				command.respond(string)
+			}
+			ChannelJoin => {
+				warn!("Handling ChannelJoin request using dummy response");
+				command.respond(String::from("ok"))
+			}
+			ChannelJoinAllsite => {
+				warn!("Handling ChannelJoinAllsite request using dummy response");
+				command.respond(String::from("ok"))
+			}
+			UserGetGlobalSettings => {
+				warn!("Handling UserGetGlobalSettings request using dummy response");
+				command.respond(String::from("{}"))
 			}
 			_ => {
 				let cmd = command.cmd.clone();
