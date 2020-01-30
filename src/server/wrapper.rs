@@ -75,13 +75,14 @@ pub fn serve_wrapper(
 	let path = PathBuf::from("./ui/wrapper.html");
 	let string = match render(
 		&path,
+		// TODO: replace hardcoded values
 		WrapperData {
 			inner_path: String::from(inner_path),
 			file_url: format!("\\/{}\\/{}", address.to_string(), inner_path),
 			file_inner_path: String::from(inner_path),
 			address: format!("{}", address.to_string()),
 			title: String::from("zerunet test site"),
-			body_style: String::from("body_style"),
+			body_style: String::from(""),
 			meta_tags: String::from("<test>"),
 			query_string: format!("\\?wrapper_nonce\\={}", nonce.clone()),
 			wrapper_key: nonce.clone(),
@@ -91,10 +92,10 @@ pub fn serve_wrapper(
 			permissions: String::from("[]"),
 			show_loadingscreen: String::from("false"),
 			sandbox_permissions: String::from("allow-popups-to-escape-sandbox"),
-			rev: String::from("rev"),
-			lang: String::from("lang"),
+			rev: String::from("1"),
+			lang: String::from("en"),
 			homepage: String::from("/1HeLLo4uzjaLetFx6NH3PMwFP3qbRbTf3D"),
-			themeclass: String::from("themeclass"),
+			themeclass: String::from("dark"),
 			script_nonce: String::from("script_nonce"),
 		},
 	) {
