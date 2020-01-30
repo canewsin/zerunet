@@ -55,11 +55,12 @@ good code that does what it's supposed to do!
 
 1. Limited API prototype
   - All official sites (Hello, Talk, Me, etc.) work passively (anything that does not alter data)
+    - Channel Subscriptions (site Actor has Vec<Addr<Websocket>>)
   - Find peers on LAN
   - Make connections to peers over clearnet
 2. Online Peer Connections
   - Find peers through trackers and pex.
-  - Make connections to peers over Tor and I2P.
+  - Make connections to peers over Tor, I2P and maybe LokiNet.
 3. Full Core API prototype
   - All API functions that are not part of a plugin are implemented.
 4. Priority Plugin Pack
@@ -107,6 +108,8 @@ Checklist:
       - [ ] Don't allow editing of files unless permission is given
   - [ ] API/WebSocket
     - [x] WebSocket endpoint
+    - [ ] Websockets can listen to changes on specific site
+    - [ ] Websockets can listen to changes to any site
     - [ ] Implement wrapper actions
     - [ ] Core API
 - [ ] Peer connectivity
@@ -115,6 +118,8 @@ Checklist:
   - [ ] F2F connections
   - [ ] Tor Integration
   - [ ] I2P Integration
+- [ ] Peer messaging
+  - [ ] GetFile
 - [ ] Logging
   - [x] env_logger
   - [ ] Influx Logger
