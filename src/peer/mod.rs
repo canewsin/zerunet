@@ -51,7 +51,7 @@ impl Peer {
 		Ok(())
 	}
 	pub fn request(&mut self) {}
-	pub fn get_file(&mut self, address: &Address, inner_path: &String) -> Result<(), ()> {
+	pub fn get_file(&mut self, address: &Address, inner_path: &String) -> Result<serde_bytes::ByteBuf, ()> {
 		self.connect()?;
 		if let Some(connection) = &mut self.connection {
 			let mut params = HashMap::new();
@@ -68,18 +68,7 @@ impl Peer {
 				body: serde_bytes::ByteBuf::new(),
 			};
 			let response = connection.send(msg).unwrap();
-			let mut path = std::path::PathBuf::from("/home/crolsi/Programs/zerunet/data/");
-			path.push(&address.to_string());
-			path.push(&inner_path);
-			trace!("{:?}", std::fs::create_dir_all(path.parent().unwrap()));
-			let mut file = match std::fs::File::create(&path) {
-				Ok(f) => f,
-				Err(err) => {
-					error!("Error creating '{:?}': {:?}", &path, err);
-					return Err(());
-				}
-			};
-			file.write_all(&response.body);
+			return Ok(response.body)
 		}
 
 		warn!("Getting file from peer not fully implemented");
@@ -150,16 +139,18 @@ pub struct FileGetRequest {
 }
 
 impl Message for FileGetRequest {
-	type Result = Result<bool, Error>;
+	type Result = Result<serde_bytes::ByteBuf, Error>;
 }
 
 impl Handler<FileGetRequest> for Peer {
-	type Result = Result<bool, Error>;
+	type Result = Result<serde_bytes::ByteBuf, Error>;
 
 	fn handle(&mut self, msg: FileGetRequest, _ctx: &mut Context<Self>) -> Self::Result {
 		self.connect();
-		self.get_file(&msg.site_address, &msg.inner_path);
-
-		Ok(true)
+		if let Ok(buf) = self.get_file(&msg.site_address, &msg.inner_path) {
+			Ok(buf)
+		} else {
+			Err(Error::MissingError)
+		}
 	}
 }

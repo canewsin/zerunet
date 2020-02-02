@@ -62,7 +62,7 @@ fn main() {
 
 	let system = actix::System::new("Site manager");
 
-	let site_manager_addr = start_site_manager().unwrap();
+	let site_manager_addr = start_site_manager(&env).unwrap();
 	let peer_manager_addr = start_peer_manager(site_manager_addr.clone()).unwrap();
 
 	let res = start_local_discovery(site_manager_addr.clone(), peer_manager_addr);

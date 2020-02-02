@@ -10,13 +10,16 @@ use crate::server::websocket::ZeruWebsocket;
 use futures::future::join_all;
 use futures::future::{FutureExt, TryFutureExt};
 use std::sync::mpsc::{channel, RecvError};
+use std::path::PathBuf;
+use crate::environment::Environment;
 
-pub fn start_site_manager() -> Result<Addr<SiteManager>, RecvError> {
+pub fn start_site_manager(env: &Environment) -> Result<Addr<SiteManager>, RecvError> {
 	info!("Starting site manager.");
 
+	let data_path = env.data_path.clone();
 	let (sender, receiver) = channel();
 	std::thread::spawn(move || {
-		let site_manager = SiteManager::new();
+		let site_manager = SiteManager::new(data_path);
 		let site_manager_system = System::new("Site manager");
 		let site_manager_addr = site_manager.start();
 		if sender.send(site_manager_addr).is_err() {
@@ -35,15 +38,17 @@ pub struct SiteManager {
 	nonce: HashMap<String, Address>,
 	updated_at: DateTime<Utc>,
 	listeners: Vec<Addr<ZeruWebsocket>>,
+	data_path: PathBuf,
 }
 
 impl SiteManager {
-	pub fn new() -> SiteManager {
+	pub fn new(data_path: PathBuf) -> SiteManager {
 		SiteManager {
 			sites: HashMap::new(),
 			nonce: HashMap::new(),
 			updated_at: Utc::now(),
 			listeners: Vec::new(),
+			data_path,
 		}
 	}
 	pub fn get(&mut self, address: Address) -> Result<(Address, Addr<Site>), Error> {
@@ -54,7 +59,7 @@ impl SiteManager {
 				"Spinning up actor for zero://{}",
 				address.get_address_short()
 			);
-			let site = Site::new(self.listeners.clone(), address.clone());
+			let site = Site::new(self.listeners.clone(), address.clone(), self.data_path.clone());
 			let addr = site.start();
 			// TODO: Decide whether to spawn actors in syncArbiter
 			// let addr = SyncArbiter::start(1, || Site::new());

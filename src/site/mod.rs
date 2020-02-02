@@ -15,23 +15,27 @@ use serde_derive::{Deserialize, Serialize};
 use site_info::{SiteInfo, SiteSettings};
 use std::collections::HashMap;
 use crate::content::Content;
+use std::io::Write;
+use std::path::PathBuf;
 
 pub struct Site {
 	address: Address,
 	peers: HashMap<String, Addr<Peer>>,
 	settings: SiteSettings,
 	content: Option<Content>,
+	data_path: PathBuf,
 	listeners: Vec<Addr<ZeruWebsocket>>,
 }
 
 impl Site {
-	pub fn new(listeners: Vec<Addr<ZeruWebsocket>>, address: Address) -> Site {
+	pub fn new(listeners: Vec<Addr<ZeruWebsocket>>, address: Address, data_path: PathBuf) -> Site {
 		Site {
 			address,
 			peers: HashMap::new(),
 			settings: SiteSettings::default(),
 			content: None,
 			listeners,
+			data_path,
 		}
 	}
 	pub fn load_settings() {}
@@ -190,7 +194,19 @@ impl Handler<FileGetRequest> for Site {
 				inner_path: msg.inner_path.clone(),
 				site_address: self.address.clone(),
 			};
-			if block_on(peer.send(req)).is_ok() {
+			if let Ok(Ok(buf)) = block_on(peer.send(req)) {
+				let mut path = self.data_path.clone();
+				path.push(&self.address.to_string());
+				path.push(&msg.inner_path);
+				trace!("{:?}", std::fs::create_dir_all(path.parent().unwrap()));
+				let mut file = match std::fs::File::create(&path) {
+					Ok(f) => f,
+					Err(err) => {
+						error!("Error creating '{:?}': {:?}", &path, err);
+						return Err(Error::MissingError);
+					}
+				};
+				file.write_all(&buf);
 				return Ok(true);
 			}
 		}
