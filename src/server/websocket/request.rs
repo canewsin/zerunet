@@ -87,6 +87,7 @@ pub enum CommandType {
 	SiteSetLimit,
 	ChartDbQuery,
 	FilterIncludeList,
+	PermissionDetails,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

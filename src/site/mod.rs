@@ -14,11 +14,13 @@ use log::*;
 use serde_derive::{Deserialize, Serialize};
 use site_info::{SiteInfo, SiteSettings};
 use std::collections::HashMap;
+use crate::content::Content;
 
 pub struct Site {
 	address: Address,
 	peers: HashMap<String, Addr<Peer>>,
 	settings: SiteSettings,
+	content: Option<Content>,
 	listeners: Vec<Addr<ZeruWebsocket>>,
 }
 
@@ -28,6 +30,7 @@ impl Site {
 			address,
 			peers: HashMap::new(),
 			settings: SiteSettings::default(),
+			content: None,
 			listeners,
 		}
 	}
@@ -37,13 +40,20 @@ impl Site {
 	pub fn get_settings_cache() {}
 	pub fn get_size_limit() {}
 	pub fn get_next_size_limit() {}
-	pub fn download_content() {}
+	// Download content files
+	pub fn download_content() {
+		
+	}
 	pub fn get_reachable_bad_files() {}
 	pub fn retry_bad_files() {}
 	pub fn check_bad_files() {}
-	pub fn download() {}
+	// Download all required files
+	pub fn download() {
+	}
 	pub fn pooled_download_content() {}
-	pub fn pooled_download_file() {}
+	pub fn pooled_download_file(&mut self) -> bool {
+		false
+	}
 	pub fn updater() {}
 	pub fn check_modifications() {}
 	pub fn update() {}

@@ -6,7 +6,7 @@ use crate::site::address::Address;
 use crate::util::is_default;
 use actix::{prelude::*, Actor};
 use chrono::{DateTime, Duration, Utc};
-use connections::{PeerAddress, Connection};
+use connections::{Connection, PeerAddress};
 use ipnetwork::IpNetwork;
 use log::*;
 use serde::{Deserialize, Serialize};
