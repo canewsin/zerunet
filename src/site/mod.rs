@@ -17,12 +17,17 @@ use std::collections::HashMap;
 use crate::content::Content;
 use std::io::Write;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 pub struct Site {
 	address: Address,
 	peers: HashMap<String, Addr<Peer>>,
 	settings: SiteSettings,
 	content: Option<Content>,
+	// TODO: queued files should be more than just a string,
+	// they should have a priority, try-count, last-try timestamp,
+	// 
+	queued_files: Vec<String>,
 	data_path: PathBuf,
 	listeners: Vec<Addr<ZeruWebsocket>>,
 }
@@ -34,6 +39,7 @@ impl Site {
 			peers: HashMap::new(),
 			settings: SiteSettings::default(),
 			content: None,
+			queued_files: Vec::new(),
 			listeners,
 			data_path,
 		}
@@ -45,18 +51,54 @@ impl Site {
 	pub fn get_size_limit() {}
 	pub fn get_next_size_limit() {}
 	// Download content files
-	pub fn download_content() {
-		
+	pub fn download_content(&mut self, inner_path: &str) -> Result<(), Error> {
+		let buf = self.download_file(inner_path)?;
+		let content = match crate::content::Content::from_buf(buf) {
+			Ok(c) => c, 
+			Err(_) => return Err(Error::MissingError),
+		};
+		// TODO: verify content
+		self.content = Some(content);
+		Ok(())
 	}
 	pub fn get_reachable_bad_files() {}
 	pub fn retry_bad_files() {}
 	pub fn check_bad_files() {}
-	// Download all required files
-	pub fn download() {
+	// Initial download of site
+	pub fn download_site(&mut self) -> Result<(), Error> {
+		if self.content.is_none() {
+			self.download_content("content.json")?;
+		}
+		// TODO: how to best avoid this clone?
+		// I'd say instead of "needing" files here, adding them to a queue and
+		// downloading them later instead would solve the problem adequately.
+		let content = self.content.as_mut().unwrap().clone();
+		if !content.verify(self.address.to_string()) {
+			error!("Content signature {:?} is not valid for address {}!", content.signs, self.address.to_string());
+			return Err(Error::MissingError)
+		}
+		for (key, value) in content.files.iter() {
+			self.need_file(key); // TODO: handle result
+		}
+		Ok(())
 	}
-	pub fn pooled_download_content() {}
-	pub fn pooled_download_file(&mut self) -> bool {
-		false
+	// Download file 
+	pub fn download_file(&mut self, inner_path: &str) -> Result<serde_bytes::ByteBuf, Error> {
+		if self.peers.len() == 0 {
+			trace!("No peers for {}", self.address.to_string());
+			return Err(Error::MissingError);
+		}
+		// TODO: Do some smart peer management here instead of this ... whatever it is
+		for (key, peer) in self.peers.iter() {
+			let req = crate::peer::FileGetRequest {
+				inner_path: inner_path.to_string(),
+				site_address: self.address.clone(),
+			};
+			if let Ok(Ok(buf)) = block_on(peer.send(req)) {
+				return Ok(buf)
+			}
+		}
+		return Err(Error::MissingError);
 	}
 	pub fn updater() {}
 	pub fn check_modifications() {}
@@ -71,20 +113,46 @@ impl Site {
 		// TODO: get info for file from content.json
 	}
 	// Check and download if file not exist
-	pub fn need_file(&mut self, inner_path: String) -> bool {
-		if false {
-			// get task if task exists
-			return false;
-		} else if true {
-			// check if file exists
-			return true;
-		} else if !self.settings.serving {
-			// Site is not serving
-			return false;
-		} else {
-			// create task and wait for completion if blocking
-			return true;
+	pub fn need_file(&mut self, inner_path: &str) -> Result<bool, Error> {
+		// TODO: move site download to appropriate place
+		if self.content.is_none() {
+			self.download_site()?;
 		}
+		let file_content = match self.content.as_ref().unwrap().get_file(inner_path) {
+			Some(f) => f,
+			None => return Err(Error::MissingError),
+		};
+		// TODO: find file in content and prioritize appropriately
+		self.queued_files.push(String::from(inner_path));
+		// TODO: stop here, let queued files be downloaded by routine
+		let buf = self.download_file(inner_path)?;
+		let mut path = self.data_path.clone();
+		path.push(&self.address.to_string());
+		path.push(inner_path);
+		// TODO: check if we need to take the parent here
+		trace!("{:?}", std::fs::create_dir_all(path.parent().unwrap()));
+		let mut file = match std::fs::File::create(&path) {
+			Ok(f) => f,
+			Err(err) => {
+				error!("Error creating '{:?}': {:?}", &path, err);
+				return Err(Error::MissingError);
+			}
+		};
+		if buf.len() != file_content.size {
+			error!("Wrong filesize!");
+			return Err(Error::MissingError);
+		}
+		let mut hasher = sha2::Sha512::default();
+		use sha2::Digest;
+		hasher.input(&buf);
+		let mut hash_result = hex::encode(hasher.result());
+		hash_result.truncate(64);
+		if hash_result != file_content.sha512 {
+			error!("Wrong filehash: {} != {}", &hash_result, &file_content.sha512);
+			return Err(Error::MissingError);
+		}
+		file.write_all(&buf)?;
+		return Ok(true);
 	}
 	pub fn add_peer() {}
 	pub fn announce() {}
@@ -185,32 +253,7 @@ impl Handler<FileGetRequest> for Site {
 	type Result = Result<bool, Error>;
 
 	fn handle(&mut self, msg: FileGetRequest, _ctx: &mut Context<Self>) -> Self::Result {
-		if self.peers.len() == 0 {
-			trace!("No peers for {}", self.address.to_string());
-			return Ok(false);
-		}
-		for (key, peer) in self.peers.iter() {
-			let req = crate::peer::FileGetRequest {
-				inner_path: msg.inner_path.clone(),
-				site_address: self.address.clone(),
-			};
-			if let Ok(Ok(buf)) = block_on(peer.send(req)) {
-				let mut path = self.data_path.clone();
-				path.push(&self.address.to_string());
-				path.push(&msg.inner_path);
-				trace!("{:?}", std::fs::create_dir_all(path.parent().unwrap()));
-				let mut file = match std::fs::File::create(&path) {
-					Ok(f) => f,
-					Err(err) => {
-						error!("Error creating '{:?}': {:?}", &path, err);
-						return Err(Error::MissingError);
-					}
-				};
-				file.write_all(&buf);
-				return Ok(true);
-			}
-		}
-		return Ok(false);
+		self.need_file(&msg.inner_path)
 	}
 }
 
