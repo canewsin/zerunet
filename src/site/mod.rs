@@ -17,7 +17,6 @@ use std::collections::HashMap;
 use crate::content::Content;
 use std::io::Write;
 use std::path::PathBuf;
-use std::str::FromStr;
 
 pub struct Site {
 	address: Address,
@@ -189,6 +188,9 @@ impl Handler<SiteInfoRequest> for Site {
 
 	fn handle(&mut self, msg: SiteInfoRequest, ctx: &mut Context<Self>) -> Self::Result {
 		// TODO: replace default values
+		if self.content.is_none() {
+			self.download_content("content.json");
+		}
 		Ok(SiteInfo {
 			tasks: 0,
 			size_limit: 10,
@@ -201,7 +203,7 @@ impl Handler<SiteInfoRequest> for Site {
 			settings: self.settings.clone(),
 			bad_files: 0,
 			workers: 0,
-			content: Default::default(),
+			content: site_info::SiteContentSummary::from_content(&self.content.as_ref().unwrap()),
 			started_task_num: 0,
 			content_updated: 0f64,
 		})

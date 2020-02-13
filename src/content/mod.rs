@@ -21,7 +21,7 @@ use log::*;
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(default)]
 pub struct Content {
-	address: String,
+	pub address: String,
 
 	#[serde(skip_serializing_if = "is_default")]
 	address_index: usize,
@@ -36,10 +36,10 @@ pub struct Content {
 	#[serde(skip_serializing_if = "is_default")]
 	sign: Vec<f64>, // DEPRECATED
 	#[serde(skip_serializing_if = "is_default")]
-	signers_sign: String,
+	pub signers_sign: String,
 	#[serde(skip_serializing_if = "is_default")]
 	pub signs: BTreeMap<String, String>,
-	zeronet_version: String,
+	pub zeronet_version: String,
 
 	#[serde(rename = "background-color")]
 	#[serde(skip_serializing_if = "is_default")]
@@ -47,20 +47,20 @@ pub struct Content {
 	#[serde(skip_serializing_if = "is_default")]
 	cloneable: bool,
 	#[serde(skip_serializing_if = "is_default")]
-	description: String,
+	pub description: String,
 	#[serde(skip_serializing_if = "is_default")]
 	domain: String,
-	ignore: Option<String>,
+	pub ignore: Option<String>,
 	#[serde(skip_serializing_if = "is_default")]
-	includes: BTreeMap<String, Include>,
+	pub includes: BTreeMap<String, Include>,
 	#[serde(skip_serializing_if = "is_default")]
-	merged_type: String,
+	pub merged_type: String,
 	#[serde(skip_serializing_if = "is_default")]
-	optional: String,
+	pub optional: String,
 	#[serde(skip_serializing_if = "is_default")]
-	signs_required: usize,
+	pub signs_required: usize,
 	#[serde(skip_serializing_if = "is_default")]
-	title: String,
+	pub title: String,
 	#[serde(skip_serializing_if = "is_default")]
 	translate: Vec<String>,
 	#[serde(skip_serializing_if = "is_default")]
@@ -70,7 +70,7 @@ pub struct Content {
 	#[serde(skip_serializing_if = "is_default")]
 	viewport: String,
 	#[serde(skip_serializing_if = "is_default")]
-	settings: BTreeMap<String, serde_json::Value>,
+	pub settings: BTreeMap<String, serde_json::Value>,
 
 	#[serde(flatten)]
 	other: BTreeMap<String, Value>,
