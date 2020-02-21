@@ -1,5 +1,6 @@
 use super::address::Address;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct SiteInfo {
@@ -43,6 +44,7 @@ pub struct SiteContentSummary {
 	ignore: Option<String>,
 	inner_path: String,
 	title: String,
+	settings: BTreeMap<String, serde_json::Value>,
 	signs_required: usize,
 	modified: f64,
 	signers_sign: Option<String>,
@@ -56,7 +58,7 @@ impl SiteContentSummary {
 	pub fn from_content(content: &crate::content::Content) -> SiteContentSummary {
 		SiteContentSummary {
 			address: content.address.clone(),
-			address_index: 0,
+			address_index: 0, // TODO: What exactly is this?
 			description: content.description.clone(),
 			files: content.files.len(),
 			files_optional: content.files_optional.len(),
@@ -64,6 +66,7 @@ impl SiteContentSummary {
 			includes: content.includes.len(),
 			inner_path: String::from("content.json"),
 			modified: 0.0, // TODO: replace hardcoded
+			settings: content.settings.clone(),
 			signs_required: content.signs_required,
 			signers_sign: None,
 			title: content.title.clone(),
