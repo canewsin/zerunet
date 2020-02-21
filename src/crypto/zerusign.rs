@@ -59,6 +59,17 @@ pub fn msg_hash(msg: &str) -> Vec<u8> {
 	sha256d(&[MSG_SIGN_PREFIX, bytes.as_slice(), msg.as_bytes()].concat())
 }
 
+/// Verifies that sign is a valid sign for given data and address
+/// ```
+/// let data = String::from("Testmessage");
+/// let address = String::from("1HZwkjkeaoZfTSaJxDw6aKkxp45agDiEzN")
+/// let signature = String::from("G+Hnv6dXxOAmtCj8MwQrOh5m5bV9QrmQi7DSGKiRGm9TWqWP3c5uYxUI/C/c+m9+LtYO26GbVnvuwu7hVPpUdow=");
+/// 
+/// match verify(data, address, signature) {
+/// 	Ok(_) => println("Signature is a valid."),
+/// 	Err(_) => println("Signature is invalid."),
+/// }
+/// ```
 pub fn verify(data: String, valid_address: String, sign: String) -> Result<(), Error> {
 	let sig = decode(&sign)?;
 	let hash = msg_hash(&data);
@@ -90,7 +101,17 @@ pub fn verify(data: String, valid_address: String, sign: String) -> Result<(), E
 	return Err(Error::AddressMismatch(address));
 }
 
-pub fn sign(data: String, privkey: String) -> Result<(String), Error> {
+/// Generate a valid signature for given data and private key
+/// ```
+/// let data = String::from("Testmessage");
+/// let private_key = String::from("5KYZdUEo39z3FPrtuX2QbbwGnNP5zTd7yyr2SC1j299sBCnWjss");
+/// 
+/// match sign(data, private_key) {
+/// 	Ok(signature) => println("The signature is {}", signature),
+/// 	Err(_) => println("An error occured during the signing process"),
+/// }
+/// ```
+pub fn sign(data: String, privkey: String) -> Result<String, Error> {
 	let hex = match BaseX::new(BITCOIN).decode(privkey.clone()) {
 		Some(h) => h,
 		None => return Err(Error::PrivateKeyFailure),
