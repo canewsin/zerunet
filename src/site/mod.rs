@@ -235,6 +235,14 @@ impl Handler<AddPeer> for Site {
 	}
 }
 
+/// Message struct used to request a file from a site
+/// ```
+/// match result {
+/// 	Ok(true) => println!("File has been downloaded."),
+/// 	Ok(false) => println!("File has been queued for download."),
+/// 	Err(_) => println!("An error occured!"),
+/// }
+/// ```
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct FileGetRequest {
 	#[serde(default)]
@@ -259,4 +267,32 @@ impl Handler<FileGetRequest> for Site {
 	}
 }
 
-// TODO: handle channel join messages
+/// Message struct used to add a websocket actor as
+/// listener to a site
+/// ```
+/// match result {
+/// 	Ok(true) => println!("Listener added."),
+/// 	Ok(false) => println!("Listener was already added."),
+/// 	Err(_) => println!("An error occured while adding listener!"),
+/// }
+pub struct ChannelJoinRequest {
+	pub ws_addr: Addr<ZeruWebsocket>,
+}
+
+impl Message for ChannelJoinRequest {
+	type Result = Result<bool, Error>;
+}
+
+impl Handler<ChannelJoinRequest> for Site {
+	type Result = Result<bool, Error>;
+
+	fn handle(&mut self, msg: ChannelJoinRequest, _ctx: &mut Context<Self>) -> Self::Result {
+		let ws_addr = msg.ws_addr.clone();
+		if !self.listeners.contains(&ws_addr) {
+			self.listeners.push(ws_addr);
+			return Ok(true)
+		} else {
+			return Ok(false)
+		}
+	}
+}
