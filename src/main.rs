@@ -1,6 +1,5 @@
 mod content;
 mod content_manager;
-mod crypto;
 mod environment;
 mod error;
 mod influx_logger;
@@ -18,10 +17,9 @@ use std::io::prelude::*;
 use std::io::BufReader;
 use std::path::Path;
 
-use crypto::zerusign;
-use rand;
+use zerucrypt;
 use serde_json;
-use std::path::PathBuf;
+use std::str::FromStr;
 
 use futures::executor::block_on;
 use local_discovery::start_local_discovery;
@@ -129,18 +127,12 @@ fn main() {
 		}
 	};
 
-	match zerusign::verify(
-		test_content.dump().unwrap().to_string(),
-		key,
-		String::from(value),
+	match zerucrypt::verify(
+		&test_content.dump().unwrap(),
+		&key,
+		value,
 	) {
 		Ok(_) => info!("Signature valid!"),
 		Err(_) => error!("Signature mismatch!"),
 	}
-
-	let secp = secp256k1::Secp256k1::new();
-	let mut rng = rand::rngs::OsRng::new().expect("OsRng");
-	let (privkey, pubkey) = secp.generate_keypair(&mut rng);
-	info!("{:?}", privkey);
-	info!("{:?}", pubkey);
 }

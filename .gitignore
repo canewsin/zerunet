@@ -2,3 +2,4 @@
 **/*.rs.bk
 /coverage
 /data
+Cargo.lock

@@ -109,10 +109,10 @@ impl Content {
 				return false
 			},
 		};
-		let result = crate::crypto::zerusign::verify(
-			content.dump().unwrap().to_string(),
-			key.clone(),
-			signature.to_string(),
+		let result = zerucrypt::verify(
+			&content.dump().unwrap(),
+			&key,
+			&signature,
 		);
 		if !result.is_ok() {
 			error!("Signature verification failed key {}, sig {}: {:?}", &key, &signature, &result);
@@ -121,9 +121,9 @@ impl Content {
 	}
 	pub fn sign(&self, privkey: String) -> String {
 		let content = self.cleared();
-		let result = crate::crypto::zerusign::sign(
-			content.dump().unwrap().to_string(),
-			privkey,
+		let result = zerucrypt::sign(
+			&content.dump().unwrap(),
+			&privkey,
 		).unwrap();
 		return result
 	}
