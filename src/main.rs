@@ -8,7 +8,6 @@ mod peer;
 mod server;
 mod site;
 mod tracker;
-mod upnp;
 mod util;
 
 use std::fs::File;
@@ -41,10 +40,10 @@ fn main() {
 	};
 
 	if false {
-		let punch = upnp::UPnBrunch::new()
+		let punch = upnp_brunch::UPnPBrunch::new()
 			.unwrap()
 			.retries(3)
-			.add_protocol(upnp::Protocol::TCP);
+			.add_protocol(upnp_brunch::Protocol::TCP);
 		if punch.open_port(15443, "ZeroNet").is_ok() {
 			info!("Port opened!");
 		} else {
