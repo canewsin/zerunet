@@ -1,6 +1,6 @@
-use super::address::Address;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use zerucontent::Content;
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct SiteInfo {
@@ -55,7 +55,7 @@ pub struct SiteContentSummary {
 }
 
 impl SiteContentSummary {
-	pub fn from_content(content: &crate::content::Content) -> SiteContentSummary {
+	pub fn from_content(content: &Content) -> SiteContentSummary {
 		SiteContentSummary {
 			address: content.address.clone(),
 			address_index: 0, // TODO: What exactly is this?

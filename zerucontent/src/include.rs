@@ -1,4 +1,4 @@
-use super::is_default;
+use crate::util::is_default;
 use serde::{Deserialize, Serialize};
 use std::cmp::PartialEq;
 use std::default::Default;

@@ -1,17 +1,17 @@
 use serde::Serialize;
-use serde_json::error::{Error, Result};
+use serde_json::error::{Result};
 use serde_json::ser::{Formatter, Serializer};
 use std::io;
 
 #[derive(Clone, Debug)]
-pub struct ZeroFormatter;
+pub struct ZeruFormatter;
 
 pub fn to_writer_pretty<W, T: ?Sized>(writer: W, value: &T) -> Result<()>
 where
 	W: io::Write,
 	T: Serialize,
 {
-	let mut ser = Serializer::with_formatter(writer, ZeroFormatter);
+	let mut ser = Serializer::with_formatter(writer, ZeruFormatter);
 	value.serialize(&mut ser)
 }
 
@@ -36,7 +36,7 @@ where
 	Ok(string)
 }
 
-impl Formatter for ZeroFormatter {
+impl Formatter for ZeruFormatter {
 	#[inline]
 	fn begin_array<W: ?Sized>(&mut self, writer: &mut W) -> io::Result<()>
 	where

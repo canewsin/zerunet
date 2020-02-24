@@ -1,5 +1,5 @@
 mod content_db;
-use super::content::Content;
+use zerucontent::Content;
 use crate::error::Error;
 use content_db::ContentDb;
 use log::*;

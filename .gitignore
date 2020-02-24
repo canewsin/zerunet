@@ -3,3 +3,5 @@
 /coverage
 /data
 Cargo.lock
+/zerucontent/target
+/zerucontent/Cargo.lock

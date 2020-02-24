@@ -1,4 +1,3 @@
-mod content;
 mod content_manager;
 mod environment;
 mod error;
@@ -86,7 +85,7 @@ fn main() {
 		}
 	};
 
-	let test_content: content::Content = match serde_json::from_reader(BufReader::new(file)) {
+	let test_content: zerucontent::Content = match serde_json::from_reader(BufReader::new(file)) {
 		Ok(c) => c,
 		Err(error) => {
 			println!("error {:?}", error);

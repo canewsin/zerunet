@@ -14,7 +14,7 @@ use log::*;
 use serde_derive::{Deserialize, Serialize};
 use site_info::{SiteInfo, SiteSettings};
 use std::collections::HashMap;
-use crate::content::Content;
+use zerucontent::Content;
 use std::io::Write;
 use std::path::PathBuf;
 
@@ -52,7 +52,7 @@ impl Site {
 	// Download content files
 	pub fn download_content(&mut self, inner_path: &str) -> Result<(), Error> {
 		let buf = self.download_file(inner_path)?;
-		let content = match crate::content::Content::from_buf(buf) {
+		let content = match Content::from_buf(buf) {
 			Ok(c) => c, 
 			Err(_) => return Err(Error::MissingError),
 		};
