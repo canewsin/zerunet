@@ -192,9 +192,10 @@ impl Handler<SiteInfoRequest> for Site {
 			self.download_content("content.json");
 		}
 		Ok(SiteInfo {
-			tasks: 0,
+			tasks: self.queued_files.len(),
 			size_limit: 10,
 			address: self.address.to_string(),
+			address_short: self.address.get_address_short(),
 			next_size_limit: 10,
 			auth_address: String::from("test"),
 			auth_key_sha512: String::from("test"),
@@ -210,6 +211,16 @@ impl Handler<SiteInfoRequest> for Site {
 	}
 }
 
+/// Message struct used to add a peer to a site
+/// ```
+/// let site = Site::new(Vec::new(), Address::from_str("Demo"), "data_path");
+/// let peer = Peer::new(PeerAddress::IPV4("192.168.1.1:5432"));
+/// let msg = AddPeer{
+/// 	peer_id: "peerID",
+/// 	peer_addr: peer.addr(),
+/// };
+/// site.send(msg);
+/// ```
 pub struct AddPeer {
 	peer_id: String,
 	peer_addr: Addr<Peer>,

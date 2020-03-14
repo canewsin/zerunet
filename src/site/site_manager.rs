@@ -12,6 +12,7 @@ use futures::future::{FutureExt, TryFutureExt};
 use std::sync::mpsc::{channel, RecvError};
 use std::path::PathBuf;
 use crate::environment::Environment;
+use std::pin::Pin;
 
 pub fn start_site_manager(env: &Environment) -> Result<Addr<SiteManager>, RecvError> {
 	info!("Starting site manager.");
@@ -56,11 +57,22 @@ impl SiteManager {
 			Ok((address, addr.clone()))
 		} else {
 			info!(
-				"Spinning up actor for zero://{}",
+				"Spinning up actor for site zero://{}",
 				address.get_address_short()
 			);
 			let site = Site::new(self.listeners.clone(), address.clone(), self.data_path.clone());
-			let addr = site.start();
+			let (sender, receiver) = channel();
+			std::thread::spawn(move || {
+				let site_system = System::new("Site system");
+				let addr = site.start();
+				if sender.send(addr).is_err() {
+					error!("Error sending site actor addres to manager");
+				}
+				if site_system.run().is_err() {
+					error!("Site Actix System encountered an error");
+				}
+			});
+			let addr = receiver.recv().unwrap();
 			// TODO: Decide whether to spawn actors in syncArbiter
 			// let addr = SyncArbiter::start(1, || Site::new());
 			self.sites.insert(address.clone(), addr.clone());
@@ -76,6 +88,44 @@ impl SiteManager {
 		}
 		error!("No site found for key {}", key);
 		Err(Error::MissingError)
+	}
+	pub fn write_to_file(&mut self) -> Pin<Box<Future<Output = ()>>> {
+		// TODO: remove this temp test:
+		let requests: Vec<_> = self.sites
+			.values()
+			.map(|addr|
+				addr.send(super::SiteInfoRequest{})
+					.map_err(|err|
+						error!("Site info request failed")
+					)
+			)
+			.collect();
+		let request = join_all(requests)
+			.map(|results| {
+				let mut site_infos = HashMap::new();
+				for info in results {
+					match info {
+						Ok(Ok(i)) => {
+							site_infos.insert(i.address.clone(), i);
+						},
+						_ => return Err(()),
+					}
+				}
+				Ok(site_infos)
+			}).map(|result| {
+				match result {
+					Ok(infos) => {
+						trace!("{:?}", infos);
+					},
+					Err(err) => error!("Error encountered collecting site information"),
+				}
+			});
+		return Box::pin(request)
+		// if results.iter().any(|x| x.is_err() || x.as_ref().unwrap().is_err()) {
+		// 	return Err(Error::MissingError);
+		// }
+		// let results = results.into_iter().map(|x| x.unwrap().unwrap());
+		// results.for_each(|x| trace!("{:?}", x));
 	}
 }
 

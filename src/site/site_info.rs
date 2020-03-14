@@ -2,12 +2,40 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use zerucontent::Content;
 
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct SiteFile {
+	added: usize,
+	ajax_key: String,
+	auth_key: String,
+	bytes_recv: usize,
+	bytes_sent: usize,
+	cache: SiteCache,
+	downloaded: usize,
+	modified: usize,
+	optional_downloaded: usize,
+	own: bool,
+	peers: usize,
+	permissions: Vec<String>,
+	serving: bool,
+	size: usize,
+	size_files_optional: usize,
+	size_optional: usize,
+	wrapper_key: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct SiteCache {
+	bad_files: BTreeMap<String, usize>,
+	hashfield: String,
+}
+
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct SiteInfo {
 	pub tasks: usize,
 	// Allowed size in MB
 	pub size_limit: usize,
 	pub address: String,
+	pub address_short: String,
 	pub next_size_limit: usize,
 	pub auth_address: String,
 	pub auth_key_sha512: String,
