@@ -1,6 +1,7 @@
 pub mod error;
 pub mod request;
 pub mod response;
+mod site;
 
 use crate::site::site_manager::{Lookup, SiteManager};
 use crate::user::user_manager::{UserManager, UserRequest};
@@ -77,7 +78,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ZeruWebsocket {
 		}
 		match msg.unwrap() {
 			ws::Message::Ping(msg) => ctx.pong(&msg),
-			ws::Message::Text(text) => {
+			ws::Message::Text(text) => { 
 				let command: Command = match serde_json::from_str(&text) {
 					Ok(c) => c,
 					Err(e) => {
@@ -222,21 +223,8 @@ impl ZeruWebsocket {
 		let response = match command.cmd {
 			Ping => handle_ping(ctx, command),
 			ServerInfo => handle_server_info(ctx, command),
-			SiteInfo => {
-				warn!("Handling SiteInfo request with dummy response");
-				let site_info_req = crate::site::SiteInfoRequest {};
-				let result = block_on(self.site_addr.send(site_info_req));
-				// TODO: Clean up this part
-				if result.is_err() {
-					return Err(Error {});
-				}
-				let result = result.unwrap();
-				if result.is_err() {
-					return Err(Error {});
-				}
-				let result = result.unwrap();
-				command.respond(result)
-			}
+			SiteInfo => site::handle_site_info(self, ctx, command),
+			SiteList => site::handle_site_list(self, ctx, command),
 			ServerErrors => {
 				warn!("Handling ServerErrors request with dummy response");
 				// TODO: actually return the errors
@@ -269,18 +257,6 @@ impl ZeruWebsocket {
 				let mut map = serde_json::Map::new();
 				map.insert(String::from("sites_section_hide"), serde_json::Value::Null);
 				command.respond(serde_json::Value::Object(map))
-			}
-			SiteList => {
-				info!("Handling SiteList");
-				// TODO: actually return list of sites
-				let sites = block_on(
-					self
-						.site_manager
-						.send(crate::site::site_manager::SiteInfoListRequest {}),
-				)
-				.unwrap()
-				.unwrap();
-				command.respond(sites)
 			}
 			OptionalLimitStats => {
 				// TODO: replace dummy response with actual response

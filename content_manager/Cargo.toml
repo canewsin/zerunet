@@ -1,0 +1,15 @@
+[package]
+name = "content_manager"
+version = "0.1.0"
+authors = ["Ansho Rei <anshorei@zeroid.bit>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+diesel = { version = "*", features = [ "sqlite" ] }
+# diesel = { version = "*", features = [ "postgres" ] }
+serde_derive = "*"
+serde_json = "*"
+serde = "*"
+zerucontent = { path = "../zerucontent" }

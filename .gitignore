@@ -2,6 +2,8 @@
 **/*.rs.bk
 /coverage
 /data
-Cargo.lock
+/Cargo.lock
 /zerucontent/target
 /zerucontent/Cargo.lock
+/content_manager/target
+/content_manager/Cargo.lock
