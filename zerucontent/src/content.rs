@@ -15,15 +15,15 @@ pub struct Content {
 	pub address: String,
 
 	#[serde(skip_serializing_if = "is_default")]
-	address_index: usize,
+	pub address_index: usize,
 	#[serde(skip_serializing_if = "is_default")]
-	cloned_from: String,
+	pub cloned_from: String,
 	#[serde(skip_serializing_if = "is_default")]
-	clone_root: String,
+	pub clone_root: String,
 	pub files: BTreeMap<String, File>,
 	#[serde(skip_serializing_if = "is_default")]
 	pub files_optional: BTreeMap<String, File>,
-	modified: Option<serde_json::Number>, // TODO: this is not actually an option
+	pub modified: f64,
 	#[serde(skip_serializing_if = "is_default")]
 	sign: Vec<f64>, // DEPRECATED
 	#[serde(skip_serializing_if = "is_default")]
@@ -34,13 +34,13 @@ pub struct Content {
 
 	#[serde(rename = "background-color")]
 	#[serde(skip_serializing_if = "is_default")]
-	background_color: String,
+	pub background_color: String,
 	#[serde(skip_serializing_if = "is_default")]
-	cloneable: bool,
+	pub cloneable: bool,
 	#[serde(skip_serializing_if = "is_default")]
 	pub description: String,
 	#[serde(skip_serializing_if = "is_default")]
-	domain: String,
+	pub domain: String,
 	pub ignore: Option<String>,
 	#[serde(skip_serializing_if = "is_default")]
 	pub includes: BTreeMap<String, Include>,
@@ -53,13 +53,13 @@ pub struct Content {
 	#[serde(skip_serializing_if = "is_default")]
 	pub title: String,
 	#[serde(skip_serializing_if = "is_default")]
-	translate: Vec<String>,
+	pub translate: Vec<String>,
 	#[serde(skip_serializing_if = "is_default")]
-	favicon: String,
+	pub favicon: String,
 	#[serde(skip_serializing_if = "is_default")]
-	user_contents: UserContents,
+	pub user_contents: UserContents,
 	#[serde(skip_serializing_if = "is_default")]
-	viewport: String,
+	pub viewport: String,
 	#[serde(skip_serializing_if = "is_default")]
 	pub settings: BTreeMap<String, serde_json::Value>,
 
