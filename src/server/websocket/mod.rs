@@ -3,6 +3,7 @@ pub mod request;
 pub mod response;
 
 use crate::site::site_manager::{Lookup, SiteManager};
+use crate::user::user_manager::{UserManager, UserRequest};
 use actix::{Actor, Addr, StreamHandler};
 use actix_web::{
 	web::{Data, Payload, Query},
@@ -44,6 +45,7 @@ pub async fn serve_websocket(
 	info!("Websocket established for {}", address.get_address_short());
 	let mut websocket = ZeruWebsocket {
 		site_manager: data.site_manager.clone(),
+		user_manager: data.user_manager.clone(),
 		site_addr: addr,
 		address: address,
 		data_path: data.data_path.clone(),
@@ -55,6 +57,7 @@ pub async fn serve_websocket(
 
 pub struct ZeruWebsocket {
 	site_manager: Addr<SiteManager>,
+	user_manager: Addr<UserManager>,
 	site_addr: actix::Addr<crate::site::Site>,
 	address: crate::site::address::Address,
 	data_path: PathBuf,
@@ -147,6 +150,8 @@ pub struct ServerInfo {
 	offline: bool,
 	plugins: Vec<String>,
 	plugins_rev: HashMap<String, usize>,
+	multiuser: bool,
+	master_address: String,
 	// user_settings
 }
 
@@ -184,8 +189,10 @@ fn handle_server_info(
 		language: String::from("en"),
 		debug: true,
 		offline: false,
-		plugins: Vec::new(),
+		plugins: vec![String::from("Multiuser")],
 		plugins_rev: HashMap::new(),
+		multiuser: true, // TODO: make setting
+		master_address: String::from("TestAddress"), // TODO: get actual master address
 		// user_settings:
 	};
 	req.respond(server_info)
@@ -346,8 +353,17 @@ impl ZeruWebsocket {
 				command.respond(String::from("ok"))
 			}
 			UserGetGlobalSettings => {
-				warn!("Handling UserGetGlobalSettings request using dummy response");
-				command.respond(String::from("{}"))
+				// TODO: send message to user_manager_addr asking for user
+				// then forward settings to websocket
+				let user = block_on(self.user_manager.send(crate::user::user_manager::UserRequest{
+					address: String::new(),
+				}));
+				match user {
+					Ok(Some(u)) => {
+						command.respond(serde_json::to_string(&u.settings)?)
+					},
+					_ => return Err(Error{}),
+				}
 			}
 			_ => {
 				let cmd = command.cmd.clone();

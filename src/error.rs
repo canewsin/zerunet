@@ -4,7 +4,7 @@ use derive_more::Display;
 #[derive(Debug, Display)]
 pub enum Error {
 	FileNotFound,
-	Deserialization,
+	Deserialization(serde_json::Error),
 	MissingError,
 	ReqwestError,
 	MsgPackEncoding,
@@ -31,7 +31,7 @@ impl From<std::io::Error> for Error {
 impl From<serde_json::Error> for Error {
 	fn from(error: serde_json::Error) -> Error {
 		match error {
-			_ => Error::Deserialization,
+			_ => Error::Deserialization(error),
 		}
 	}
 }
