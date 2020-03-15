@@ -1,7 +1,7 @@
 pub mod error;
 pub mod request;
 pub mod response;
-mod site;
+mod handlers;
 
 use crate::site::site_manager::{Lookup, SiteManager};
 use crate::user::user_manager::{UserManager, UserRequest};
@@ -17,8 +17,6 @@ use request::{Command, CommandType::*};
 use response::Message;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use error::Error;
@@ -223,50 +221,20 @@ impl ZeruWebsocket {
 		let response = match command.cmd {
 			Ping => handle_ping(ctx, command),
 			ServerInfo => handle_server_info(ctx, command),
-			SiteInfo => site::handle_site_info(self, ctx, command),
-			SiteList => site::handle_site_list(self, ctx, command),
+			SiteInfo => handlers::sites::handle_site_info(self, ctx, command),
+			SiteList => handlers::sites::handle_site_list(self, ctx, command),
+			OptionalLimitStats => handlers::sites::handle_optional_limit_stats(self, ctx, command),
+			FileGet => handlers::files::handle_file_get(self, ctx, command),
+			UserGetSettings => handlers::users::handle_user_get_settings(self, ctx, command),
+			UserGetGlobalSettings => handlers::users::handle_user_get_global_settings(self, ctx, command),
+			AnnouncerStats => handlers::trackers::handle_announcer_stats(self, ctx, command),
+			ChannelJoin => handlers::sites::handle_channel_join(self, ctx, command),
+			ChannelJoinAllsite => handlers::sites::handle_channel_join_all_site(self, ctx, command),
 			ServerErrors => {
 				warn!("Handling ServerErrors request with dummy response");
 				// TODO: actually return the errors
 				let errors: Vec<Vec<String>> = vec![];
 				command.respond(errors)
-			}
-			AnnouncerStats => {
-				warn!("Handling AnnouncerStats request with dummy response");
-				// TODO: actually return announcer stats
-				let mut stats: HashMap<String, _> = HashMap::new();
-				stats.insert(
-					String::from("zero://boot3rdez4rzn36x.onion:15441"),
-					crate::tracker::AnnouncerStats {
-						status: String::from("announced"),
-						num_request: 0,
-						num_success: 0,
-						num_error: 0,
-						time_request: 0.0,
-						time_last_error: 0.0,
-						time_status: 0.0,
-						last_error: String::from("Not implemented yet"),
-					},
-				);
-				command.respond(stats)
-			}
-			UserGetSettings => {
-				warn!("Handling UserGetSettings with dummy response");
-				// TODO: actually return user settings
-
-				let mut map = serde_json::Map::new();
-				map.insert(String::from("sites_section_hide"), serde_json::Value::Null);
-				command.respond(serde_json::Value::Object(map))
-			}
-			OptionalLimitStats => {
-				// TODO: replace dummy response with actual response
-				warn!("Handling OptionalLimitStats with dummy response");
-				let limit_stats = crate::optional_files::OptionalLimitStats {
-					limit: String::from("10%"),
-					used: 1000000,
-					free: 4000000,
-				};
-				command.respond(limit_stats)
 			}
 			FeedQuery => {
 				warn!("Handling FeedQuery");
@@ -277,69 +245,6 @@ impl ZeruWebsocket {
 				}
 				let result = FeedQueryResponse { rows: Vec::new() };
 				command.respond(result)
-			}
-			FileGet => {
-				warn!("Handling FileGet request");
-				// if required || inner_path in site.bad_files
-				// if let Some(addr) = addr {
-				// 	addr.send(FileNeed command);
-				// }
-				let msg: crate::site::FileGetRequest = match serde_json::from_value(command.params.clone())
-				{
-					Ok(m) => m,
-					Err(e) => {
-						error!("{:?}", e);
-						// TODO: error
-						crate::site::FileGetRequest::default()
-					}
-				};
-				let mut path = self.data_path.clone(); // TODO: use data path env var
-				path.push(Path::new(&format!(
-					"{}/{}",
-					self.address.to_string(),
-					msg.inner_path
-				)));
-				if !path.is_file() {
-					block_on(self.site_addr.send(msg));
-				}
-				let mut file = match File::open(path) {
-					Ok(f) => f,
-					Err(err) => {
-						error!("Failed to get file: {:?}", err);
-						return Err(Error {}); // TODO: respond with 404 equivalent
-					}
-				};
-				let mut string = String::new();
-				match file.read_to_string(&mut string) {
-					Ok(_) => {}
-					Err(_) => {
-						error!("Failed to read file to string");
-						return Err(Error {});
-					} // TODO: respond with 404 equivalent
-				}
-
-				command.respond(string)
-			}
-			ChannelJoin => {
-				warn!("Handling ChannelJoin request using dummy response");
-				command.respond(String::from("ok"))
-			}
-			ChannelJoinAllsite => {
-				warn!("Handling ChannelJoinAllsite request using dummy response");
-				command.respond(String::from("ok"))
-			}
-			UserGetGlobalSettings => {
-				// TODO: send message to user_manager_addr asking for user
-				// then forward settings to websocket
-				let user = block_on(self.user_manager.send(crate::user::user_manager::UserRequest{
-					address: String::new(),
-				}));
-				match user {
-					Ok(Some(u)) => {
-						command.respond(serde_json::to_string(&u.settings)?)
-					},
-					_ => return Err(Error{}),
-				}
 			}
 			_ => {
 				let cmd = command.cmd.clone();
