@@ -33,10 +33,12 @@ pub struct Site {
 
 impl Site {
 	pub fn new(listeners: Vec<Addr<ZeruWebsocket>>, address: Address, data_path: PathBuf) -> Site {
+		let mut settings = SiteSettings::default();
+		settings.serving = true;
 		Site {
 			address,
 			peers: HashMap::new(),
-			settings: SiteSettings::default(),
+			settings,
 			content: None,
 			queued_files: Vec::new(),
 			listeners,
