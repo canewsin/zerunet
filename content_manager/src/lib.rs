@@ -4,10 +4,14 @@ extern crate diesel;
 extern crate serde_derive;
 extern crate serde_json;
 
-// use diesel::prelude::*;
-
 mod models;
 mod schema;
+mod db_schema;
+
+use models::*;
+use schema::*;
+use diesel::prelude::*;
+use diesel::insert_into;
 
 pub fn create_tables<Conn>(conn: &Conn) -> Result<(), diesel::result::Error> 
   where Conn: diesel::Connection {
@@ -39,11 +43,6 @@ pub fn insert_content(content: zerucontent::Content) -> Result<(), ()> {
   
   Ok(())
 }
-
-use models::*;
-use schema::*;
-use diesel::prelude::*;
-use diesel::insert_into;
 
 pub struct ContentManager<Conn: Connection> {
   conn: Conn,

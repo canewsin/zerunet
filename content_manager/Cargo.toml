@@ -7,9 +7,13 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-diesel = { version = "*", features = [ "sqlite" ] }
+diesel = { git = "https://github.com/diesel-rs/diesel", features = [ "sqlite" ] }
 # diesel = { version = "*", features = [ "postgres" ] }
 serde_derive = "*"
 serde_json = "*"
 serde = "*"
 zerucontent = { path = "../zerucontent" }
+itertools = "0.8"
+regex = "*"
+log = "*"
+# diesel-dynamic-schema = { git = "http://github.com/diesel-rs/diesel-dynamic-schema" }
