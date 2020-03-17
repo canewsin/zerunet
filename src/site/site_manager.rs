@@ -12,6 +12,7 @@ use futures::future::{FutureExt, TryFutureExt};
 use std::sync::mpsc::{channel, RecvError};
 use std::path::PathBuf;
 use crate::environment::Environment;
+use futures::executor::block_on;
 use std::pin::Pin;
 
 pub fn start_site_manager(env: &Environment) -> Result<Addr<SiteManager>, RecvError> {
@@ -77,6 +78,7 @@ impl SiteManager {
 			// let addr = SyncArbiter::start(1, || Site::new());
 			self.sites.insert(address.clone(), addr.clone());
 			self.updated_at = Utc::now();
+
 			Ok((address, addr))
 		}
 	}
@@ -120,12 +122,8 @@ impl SiteManager {
 					Err(err) => error!("Error encountered collecting site information"),
 				}
 			});
+			// TODO: actually write the resulting structure to a file
 		return Box::pin(request)
-		// if results.iter().any(|x| x.is_err() || x.as_ref().unwrap().is_err()) {
-		// 	return Err(Error::MissingError);
-		// }
-		// let results = results.into_iter().map(|x| x.unwrap().unwrap());
-		// results.for_each(|x| trace!("{:?}", x));
 	}
 }
 
@@ -198,6 +196,11 @@ impl Handler<SiteInfoListRequest> for SiteManager {
 	type Result = ResponseActFuture<Self, Result<Vec<SiteInfo>, Error>>;
 
 	fn handle(&mut self, _msg: SiteInfoListRequest, ctx: &mut Context<Self>) -> Self::Result {
+
+		// TODO: Decide when the sites should be written to file
+		let fu = self.write_to_file();
+		block_on(fu);
+
 		let requests: Vec<_> = self
 			.sites
 			.iter()
