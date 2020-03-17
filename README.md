@@ -14,6 +14,12 @@ in a way that is fast to write rather than fast to execute. It is also
 possible outdated packages will be used temporarily until it's worth
 replacing them with active ones or, alternatively, update them ourselves.
 
+## Goals
+- No panics.
+- 100% Compatibility with Py3 ZeroNet.
+- Performance.
+- Anonymity with Tor or I2P.
+
 ## Why do we need another ZeroNet?
 - Rust is compiled to assembly for maximum efficiency
 - Unlike Python, Rust has been designed with concurrency in mind,
@@ -35,10 +41,12 @@ replacing them with active ones or, alternatively, update them ourselves.
 
 ## Code of Conduct
 Code of Conducts are for wussies, anyone is welcome to contribute to
-zerunet or use it in any way they deem useful. We do not care about
+zerunet or use it in any way they deem useful, or not. We do not care about
 your past, your present or your future. We do not care about what crimes,
-fictitious or real, anyone is accused of having committed. Just write
-good code that does what it's supposed to do!
+fictitious or real, anyone is accused of having committed. Feel free to print
+out the full zerunet source code and use it to wipe your arse.
+
+Just write good code that does what it's supposed to do!
 
 ## Imported Libraries
 - Bitcoin utilities: rust-bitcoin
