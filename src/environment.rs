@@ -3,8 +3,14 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 const TRACKERS: &[&str] = &[
-	"zero://96.21.169.17:28969",
+	"zero://125.123.63.229:26552",
+	"zero://149.248.37.249:13601",
+	"zero://38.39.233.117:15441",
+	"zero://211.125.90.79:11110",
+	"zero:/45.77.23.92:15555",
 	"zero://45.76.157.51:19355",
+	"zero://96.21.169.17:28969",
+	"zero://51.38.34.170:15656",
 	"zero://boot3rdez4rzn36x.onion:15441",
 	"zero://zero.booth.moe#f36ca555bee6ba216b14d10f38c16f7769ff064e0e37d887603548cc2e64191d:443",
 	"udp://tracker.coppersurfer.tk:6969",
