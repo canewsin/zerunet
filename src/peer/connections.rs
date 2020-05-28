@@ -4,6 +4,8 @@ use log::*;
 use std::collections::BTreeMap;
 use std::io::{Read, Write};
 use std::net::TcpStream;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 
 #[derive(Debug)]
 pub enum PeerAddress {
@@ -14,19 +16,19 @@ pub enum PeerAddress {
 	Loki(String),
 }
 
-pub trait Connection {
+pub trait Connection<T: DeserializeOwned + Serialize> {
 	// Send data to connection
-	fn send(&mut self, message: PeerMessage) -> Result<PeerMessage, Error>;
+	fn send(&mut self, message: T) -> Result<(), Error>;
 	// Stream file to connection without msgpacking
 	// fn send_rawfile(&self, file_path: String, read_bytes: usize) -> Result<(),()>;
 	// TODO: Split up PeerMessage into Request and Response types? Or just have this one use send?
-	// fn request(&self, cmd: String, params: BTreeMap<String, String>) -> Result<(),()>;
+	fn request(&mut self, message: T) -> Result<T, Error>;
 	// fn ping(&self) -> Result<(),()>;
-	fn message_loop(&mut self) -> Result<PeerMessage, Error>;
+	fn recv(&mut self) -> Result<T, Error>;
 }
 
 impl PeerAddress {
-	pub fn connect(&self) -> Result<Box<dyn Connection>, ()> {
+	pub fn connect(&self) -> Result<Box<dyn Connection<PeerMessage>>, ()> {
 		match self {
 			PeerAddress::IPV4(ip, port) | PeerAddress::IPV6(ip, port) => {
 				return Ok(Box::new(TcpConnection::connect(&ip, *port)?))
@@ -57,21 +59,27 @@ impl TcpConnection {
 	}
 }
 
-impl Connection for TcpConnection {
-	fn send(&mut self, msg: PeerMessage) -> Result<PeerMessage, Error> {
+impl <T: DeserializeOwned + Serialize> Connection<T> for TcpConnection {
+	fn send(&mut self, msg: T) -> Result<(), Error> {
 		let bytes = rmp_serde::to_vec_named(&msg)?;
+		let json_value: serde_json::Value = rmp_serde::from_slice(&bytes).unwrap();
+		trace!("Writing {} to socket.", json_value);
 		self.socket.write_all(&bytes)?;
 		trace!("Wrote \"{:?}\" to socket.", String::from_utf8_lossy(&bytes));
-		self.message_loop()
+		Ok(())
 	}
-	fn message_loop(&mut self) -> Result<PeerMessage, Error> {
-		let response: Result<PeerMessage, _> = rmp_serde::from_read(&mut self.socket);
+	fn request(&mut self, msg: T) -> Result<T, Error> {
+		self.send(msg)?;
+		self.recv()
+	}
+	fn recv(&mut self) -> Result<T, Error> {
+		let response: Result<T, _> = rmp_serde::from_read(&mut self.socket);
 		match response {
 			Ok(msg) => Ok(msg),
 			Err(err) => {
 				error!("Encountered error receiving response {:?}", err);
 				Err(Error::MissingError)
-			}
+			},
 		}
 	}
 }

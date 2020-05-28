@@ -16,7 +16,7 @@ use std::io::Write;
 
 pub struct Peer {
 	address: PeerAddress,
-	connection: Option<Box<dyn Connection>>,
+	connection: Option<Box<dyn Connection<PeerMessage>>>,
 	reputation: isize,
 	time_found: DateTime<Utc>,
 	time_added: DateTime<Utc>,
@@ -61,9 +61,16 @@ impl Peer {
 				params,
 				zerunet: true,
 				body: serde_bytes::ByteBuf::new(),
+				peers: vec![],
 			};
-			let response = connection.send(msg).unwrap();
-			return Ok(response.body)
+			let response = connection.request(msg);
+			return match response {
+				Err(err) => {
+					error!("Invalid response: {:?}", err);
+					Err(())
+				},
+				Ok(res) => Ok(res.body),
+			}
 		}
 
 		Err(())
@@ -121,6 +128,8 @@ pub struct PeerMessage {
 	zerunet: bool,
 	#[serde(default, skip_serializing_if = "is_default")]
 	body: serde_bytes::ByteBuf,
+	#[serde(default, skip_serializing_if = "is_default")]
+	peers: Vec<HashMap<String, serde_bytes::ByteBuf>>,
 }
 
 pub struct FileGetRequest {

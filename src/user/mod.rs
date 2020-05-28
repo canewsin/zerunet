@@ -63,21 +63,21 @@ impl User {
 	fn get_auth_privatekey() {}
 
 	/// Add cert for the user
-	fn addCert() {}
+	fn add_cert() {}
 
 	/// Remove cert from user
-	fn deleteCert() {}
+	fn delete_cert() {}
 
 	/// Set active cert for a site
-	fn setCert() {}
+	fn set_cert() {}
 
 	/// Get cert for the site address
 	/// 
 	/// Return: { "auth_address": "1AddR", "auth_privatekey": "xxx", "auth_type": "web", "auth_user_name": "nofish", "cert_sign": "xxx"} or None
-	fn getCert() {}
+	fn get_cert() {}
 
 	/// Get cert user name for the site address
 	/// 
 	/// Return user@certprovider.bit or None
-	fn getCertUserId() {}
+	fn get_cert_user_id() {}
 }
