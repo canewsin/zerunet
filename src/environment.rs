@@ -2,12 +2,27 @@ use clap::{App, Arg, SubCommand};
 use std::path::PathBuf;
 use std::str::FromStr;
 
+const TRACKERS: &[&str] = &[
+	"zero://96.21.169.17:28969",
+	"zero://45.76.157.51:19355",
+	"zero://boot3rdez4rzn36x.onion:15441",
+	"zero://zero.booth.moe#f36ca555bee6ba216b14d10f38c16f7769ff064e0e37d887603548cc2e64191d:443",
+	"udp://tracker.coppersurfer.tk:6969",
+	"udp://amigacity.xyz:6969",
+	"udp://104.238.198.186:8000",
+	"http://tracker01.loveapp.com:6789/announce",
+	"http://open.acgnxtracker.com:80/announce",
+	"http://open.trackerlist.xyz:80/announce",
+	"zero://2602:ffc5::c5b2:5360:26312",
+];
+
 #[derive(Debug)]
 pub struct Environment {
 	pub data_path: PathBuf,
 	pub broadcast_port: usize,
 	pub ui_ip: String,
 	pub ui_port: usize,
+	pub trackers: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -189,6 +204,7 @@ pub fn get_env() -> Result<Environment, Error> {
 		broadcast_port,
 		ui_ip: String::from(ui_ip),
 		ui_port,
+		trackers: TRACKERS.iter().map(|s| String::from(*s)).collect(),
 	};
 	Ok(env)
 }
