@@ -29,7 +29,7 @@ impl PeerAddress {
 	pub fn connect(&self) -> Result<Box<dyn Connection>, ()> {
 		match self {
 			PeerAddress::IPV4(ip, port) | PeerAddress::IPV6(ip, port) => {
-				return Ok(Box::new(TcpConnection::connect(&ip, *port)))
+				return Ok(Box::new(TcpConnection::connect(&ip, *port)?))
 			}
 			_ => return Err(()),
 		}
@@ -41,13 +41,19 @@ pub struct TcpConnection {
 }
 
 impl TcpConnection {
-	pub fn connect(ip: &str, port: usize) -> TcpConnection {
+	pub fn connect(ip: &str, port: usize) -> Result<TcpConnection, ()> {
 		trace!("Connecting to {}:{}", &ip, port);
-		let socket = TcpStream::connect(format!("{}:{}", ip, port)).unwrap();
+		let socket = TcpStream::connect(format!("{}:{}", ip, port));
+		if socket.is_err() {
+			error!("Could not connect to {}:{}", ip, port);
+			return Err(())
+		}
+		let socket = socket.unwrap();
 		socket
 			.set_read_timeout(Some(std::time::Duration::new(1, 0)))
 			.unwrap();
-		TcpConnection { socket }
+
+		Ok(TcpConnection { socket })
 	}
 }
 

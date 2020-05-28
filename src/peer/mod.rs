@@ -10,6 +10,7 @@ use connections::{Connection, PeerAddress};
 use ipnetwork::IpNetwork;
 use log::*;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::collections::HashMap;
 use std::io::Write;
 
@@ -50,17 +51,11 @@ impl Peer {
 		self.connection = Some(self.address.connect()?);
 		Ok(())
 	}
-	pub fn request(&mut self) {}
-	pub fn get_file(&mut self, address: &Address, inner_path: &String) -> Result<serde_bytes::ByteBuf, ()> {
+	pub fn request(&mut self, cmd: &str, params: serde_json::Value) -> Result<serde_bytes::ByteBuf, ()> {
 		self.connect()?;
 		if let Some(connection) = &mut self.connection {
-			let mut params = HashMap::new();
-			params.insert(String::from("site"), serde_json::json!(address.to_string()));
-			params.insert(String::from("location"), serde_json::json!(0));
-			params.insert(String::from("inner_path"), serde_json::json!(inner_path));
-			// {'cmd': 'getHashfield', 'req_id': 1, 'params': {'site': '1CWkZv7fQAKxTVjZVrLZ8VHcrN6YGGcdky'}}
 			let msg = PeerMessage {
-				cmd: String::from("getFile"),
+				cmd: cmd.to_string(),
 				to: 0,
 				req_id: 1,
 				params,
@@ -71,27 +66,22 @@ impl Peer {
 			return Ok(response.body)
 		}
 
-		warn!("Getting file from peer not fully implemented");
 		Err(())
 	}
+	pub fn get_file(&mut self, address: &Address, inner_path: &String) -> Result<serde_bytes::ByteBuf, ()> {
+		warn!("Get file is not fully implemented");
+		let mut params = HashMap::new();
+		params.insert("site", json!(address.to_string()));
+		params.insert("location", json!(0));
+		params.insert("inner_path", json!(inner_path));
+		// {'cmd': 'getHashfield', 'req_id': 1, 'params': {'site': '1CWkZv7fQAKxTVjZVrLZ8VHcrN6YGGcdky'}}
+		return self.request("getFile", json!(params));
+	}
 	pub fn ping(&mut self) -> Result<(), ()> {
-		self.connect()?;
-		if let Some(connection) = &mut self.connection {
-			let mut params = HashMap::new();
-			let msg = PeerMessage {
-				cmd: String::from("ping"),
-				to: 0,
-				req_id: 1,
-				params,
-				zerunet: true,
-				body: serde_bytes::ByteBuf::new(),
-			};
-			let res = connection.send(msg);
-			println!("{:?}", res);
-		}
+		let res = self.request("ping", serde_json::Value::Null)?;
+		println!("{:?}", res);
 
-		error!("Pinging peer not implemented");
-		Err(())
+		Ok(())
 	}
 	fn pex() {}
 	fn list_modified() {}
@@ -126,7 +116,7 @@ pub struct PeerMessage {
 	#[serde(default, skip_serializing_if = "is_default")]
 	req_id: usize,
 	#[serde(default, skip_serializing_if = "is_default")]
-	params: HashMap<String, serde_json::Value>,
+	params: serde_json::Value,
 	#[serde(default)]
 	zerunet: bool,
 	#[serde(default, skip_serializing_if = "is_default")]
