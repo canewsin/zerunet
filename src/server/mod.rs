@@ -33,7 +33,11 @@ async fn index(data: Data<ZeroServer>) -> Result<String> {
 	Ok(format!("ZeruNet serving from {:?}", data.data_path))
 }
 
-pub async fn run(env: &Environment, site_manager: Addr<SiteManager>, user_manager: Addr<UserManager>) -> std::io::Result<()> {
+pub async fn run(
+	env: &Environment,
+	site_manager: Addr<SiteManager>,
+	user_manager: Addr<UserManager>,
+) -> std::io::Result<()> {
 	let nonces = Arc::new(Mutex::new(HashSet::new()));
 	let data_path = env.data_path.clone(); // TODO: unnecessary double clone
 

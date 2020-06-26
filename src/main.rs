@@ -7,25 +7,25 @@ mod peer;
 mod server;
 mod site;
 mod tracker;
-mod util;
 mod user;
+mod util;
 
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::path::Path;
 
-use zerucrypt;
 use serde_json;
 use std::str::FromStr;
+use zerucrypt;
 
 use futures::executor::block_on;
 use local_discovery::start_local_discovery;
 use log::*;
 use peer::peer_manager::start_peer_manager;
-use user::user_manager::start_user_manager;
 use pretty_env_logger;
 use site::site_manager::start_site_manager;
+use user::user_manager::start_user_manager;
 
 // curl "http://localhost:9999/api/v2/write?org=zerunet&bucket=zeronet&precision=s" \                        Fri 27 Sep 2019 23:57:24 CEST
 //      --header "Authorization: Token hgt8JHm1c6c9_rD_lumpXNEf1qCjVqyT13AOSzrlbZfhlKEIc5MaMfKgZq8H4w1wHDCsFICF-UGEI3Zok5OiMg==" \
@@ -68,6 +68,7 @@ fn main() {
 	db.add_site(String::from("1HeLLo4uzjaLetFx6NH3PMwFP3qbRbTf3D"));
 	db.add_site(String::from("1MeFqFfFFGQfa1J3gJyYYUvb5Lksczq7nH"));
 	db.add_site(String::from("1TaLkFrMwvbNsooF4ioKAY9EuxTBTjipT"));
+	db.add_site(String::from("1DocsYf2tZVVMEMJFHiDsppmFicZCWkVv1"));
 
 	let sites = db.get_sites();
 	let mut addresses = vec![];
@@ -149,11 +150,7 @@ fn main() {
 		}
 	};
 
-	match zerucrypt::verify(
-		&test_content.dump().unwrap(),
-		&key,
-		value,
-	) {
+	match zerucrypt::verify(&test_content.dump().unwrap(), &key, value) {
 		Ok(_) => info!("Signature valid!"),
 		Err(_) => error!("Signature mismatch!"),
 	}

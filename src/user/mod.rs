@@ -1,6 +1,6 @@
 pub mod user_manager;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -43,7 +43,7 @@ impl User {
 	fn generate_auth_address() {}
 
 	/// Get user site data
-	/// 
+	///
 	/// Return: {"auth_address": "1AddR", "auth_privatekey": "xxx"}
 	fn get_site_data() {}
 
@@ -52,11 +52,11 @@ impl User {
 	fn set_site_settings() {}
 
 	/// Get data for a new, unique site
-	/// 
+	///
 	/// Return: [site_address, bip32_index, {"auth_address": "1AddR", "auth_privatekey": "xxx", "privatekey": "xxx"}]
 	fn get_new_site_data() {}
 	/// Get BIP32 address from site address
-	/// 
+	///
 	/// Return: BIP32 auth address
 	fn get_auth_address() {}
 
@@ -72,12 +72,12 @@ impl User {
 	fn set_cert() {}
 
 	/// Get cert for the site address
-	/// 
+	///
 	/// Return: { "auth_address": "1AddR", "auth_privatekey": "xxx", "auth_type": "web", "auth_user_name": "nofish", "cert_sign": "xxx"} or None
 	fn get_cert() {}
 
 	/// Get cert user name for the site address
-	/// 
+	///
 	/// Return user@certprovider.bit or None
 	fn get_cert_user_id() {}
 }

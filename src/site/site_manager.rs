@@ -6,14 +6,14 @@ use chrono::{DateTime, Utc};
 use log::*;
 use std::collections::HashMap;
 
+use crate::environment::Environment;
 use crate::server::websocket::ZeruWebsocket;
+use futures::executor::block_on;
 use futures::future::join_all;
 use futures::future::{FutureExt, TryFutureExt};
-use std::sync::mpsc::{channel, RecvError};
 use std::path::PathBuf;
-use crate::environment::Environment;
-use futures::executor::block_on;
 use std::pin::Pin;
+use std::sync::mpsc::{channel, RecvError};
 
 pub fn start_site_manager(env: &Environment) -> Result<Addr<SiteManager>, RecvError> {
 	info!("Starting site manager.");
@@ -61,7 +61,11 @@ impl SiteManager {
 				"Spinning up actor for site zero://{}",
 				address.get_address_short()
 			);
-			let site = Site::new(self.listeners.clone(), address.clone(), self.data_path.clone());
+			let site = Site::new(
+				self.listeners.clone(),
+				address.clone(),
+				self.data_path.clone(),
+			);
 			let (sender, receiver) = channel();
 			std::thread::spawn(move || {
 				let site_system = System::new("Site system");
@@ -93,14 +97,14 @@ impl SiteManager {
 	}
 	pub fn write_to_file(&mut self) -> Pin<Box<Future<Output = ()>>> {
 		// TODO: remove this temp test:
-		let requests: Vec<_> = self.sites
+		let requests: Vec<_> = self
+			.sites
 			.values()
-			.map(|addr|
-				addr.send(super::SiteInfoRequest{})
-					.map_err(|err|
-						error!("Site info request failed")
-					)
-			)
+			.map(|addr| {
+				addr
+					.send(super::SiteInfoRequest {})
+					.map_err(|err| error!("Site info request failed"))
+			})
 			.collect();
 		let request = join_all(requests)
 			.map(|results| {
@@ -109,21 +113,20 @@ impl SiteManager {
 					match info {
 						Ok(Ok(i)) => {
 							site_infos.insert(i.address.clone(), i);
-						},
+						}
 						_ => return Err(()),
 					}
 				}
 				Ok(site_infos)
-			}).map(|result| {
-				match result {
-					Ok(infos) => {
-						trace!("{:?}", infos);
-					},
-					Err(err) => error!("Error encountered collecting site information"),
+			})
+			.map(|result| match result {
+				Ok(infos) => {
+					trace!("All SiteInfo: {:?}", infos);
 				}
+				Err(err) => error!("Error encountered collecting site information"),
 			});
-			// TODO: actually write the resulting structure to a file
-		return Box::pin(request)
+		// TODO: actually write the resulting structure to a file
+		return Box::pin(request);
 	}
 }
 
@@ -196,7 +199,6 @@ impl Handler<SiteInfoListRequest> for SiteManager {
 	type Result = ResponseActFuture<Self, Result<Vec<SiteInfo>, Error>>;
 
 	fn handle(&mut self, _msg: SiteInfoListRequest, ctx: &mut Context<Self>) -> Self::Result {
-
 		// TODO: Decide when the sites should be written to file
 		let fu = self.write_to_file();
 		block_on(fu);

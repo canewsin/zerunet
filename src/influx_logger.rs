@@ -1,6 +1,5 @@
 use env_logger::Builder;
 use futures::executor::block_on;
-use log::Level;
 use reqwest;
 
 #[inline]

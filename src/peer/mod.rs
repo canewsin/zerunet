@@ -2,7 +2,7 @@ pub mod connections;
 pub mod peer_manager;
 
 use crate::error::Error;
-use crate::site::address::Address;
+use crate::site::address::Address as SiteAddress;
 use crate::util::is_default;
 use actix::{prelude::*, Actor};
 use chrono::{DateTime, Duration, Utc};
@@ -51,15 +51,18 @@ impl Peer {
 		self.connection = Some(self.address.connect()?);
 		Ok(())
 	}
-	pub fn request(&mut self, cmd: &str, params: serde_json::Value) -> Result<serde_bytes::ByteBuf, ()> {
+	pub fn request(
+		&mut self,
+		cmd: &str,
+		params: serde_json::Value,
+	) -> Result<serde_bytes::ByteBuf, ()> {
 		self.connect()?;
 		if let Some(connection) = &mut self.connection {
 			let msg = PeerMessage {
 				cmd: cmd.to_string(),
-				to: 0,
-				req_id: 1,
+				to: None,
+				req_id: Some(1),
 				params,
-				zerunet: true,
 				body: serde_bytes::ByteBuf::new(),
 				peers: vec![],
 			};
@@ -68,14 +71,18 @@ impl Peer {
 				Err(err) => {
 					error!("Invalid response: {:?}", err);
 					Err(())
-				},
+				}
 				Ok(res) => Ok(res.body),
-			}
+			};
 		}
 
 		Err(())
 	}
-	pub fn get_file(&mut self, address: &Address, inner_path: &String) -> Result<serde_bytes::ByteBuf, ()> {
+	pub fn get_file(
+		&mut self,
+		address: &SiteAddress,
+		inner_path: &String,
+	) -> Result<serde_bytes::ByteBuf, ()> {
 		warn!("Get file is not fully implemented");
 		let mut params = HashMap::new();
 		params.insert("site", json!(address.to_string()));
@@ -115,17 +122,15 @@ pub enum PeerCommand {
 	Ping,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct PeerMessage {
 	cmd: String,
 	#[serde(default, skip_serializing_if = "is_default")]
-	to: usize,
+	req_id: Option<usize>,
 	#[serde(default, skip_serializing_if = "is_default")]
-	req_id: usize,
+	to: Option<usize>,
 	#[serde(default, skip_serializing_if = "is_default")]
 	params: serde_json::Value,
-	#[serde(default)]
-	zerunet: bool,
 	#[serde(default, skip_serializing_if = "is_default")]
 	body: serde_bytes::ByteBuf,
 	#[serde(default, skip_serializing_if = "is_default")]
@@ -134,7 +139,7 @@ pub struct PeerMessage {
 
 pub struct FileGetRequest {
 	pub inner_path: String,
-	pub site_address: Address,
+	pub site_address: SiteAddress,
 }
 
 impl Message for FileGetRequest {

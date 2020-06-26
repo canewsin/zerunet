@@ -1,7 +1,7 @@
 pub mod error;
+mod handlers;
 pub mod request;
 pub mod response;
-mod handlers;
 
 use crate::site::site_manager::{Lookup, SiteManager};
 use crate::user::user_manager::{UserManager, UserRequest};
@@ -33,6 +33,7 @@ pub async fn serve_websocket(
 	let future = data
 		.site_manager
 		.send(Lookup::Key(String::from(wrapper_key)));
+	// TODO: block_on can be replaced here with await? this is an async fn
 	let (address, addr) = match block_on(future) {
 		Ok(Ok(resp)) => resp,
 		_ => {
@@ -76,7 +77,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ZeruWebsocket {
 		}
 		match msg.unwrap() {
 			ws::Message::Ping(msg) => ctx.pong(&msg),
-			ws::Message::Text(text) => { 
+			ws::Message::Text(text) => {
 				let command: Command = match serde_json::from_str(&text) {
 					Ok(c) => c,
 					Err(e) => {

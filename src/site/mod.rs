@@ -14,9 +14,9 @@ use log::*;
 use serde_derive::{Deserialize, Serialize};
 use site_info::{SiteInfo, SiteSettings};
 use std::collections::HashMap;
-use zerucontent::Content;
 use std::io::Write;
 use std::path::PathBuf;
+use zerucontent::Content;
 
 pub struct Site {
 	address: Address,
@@ -25,7 +25,6 @@ pub struct Site {
 	content: Option<Content>,
 	// TODO: queued files should be more than just a string,
 	// they should have a priority, try-count, last-try timestamp,
-	// 
 	queued_files: Vec<String>,
 	data_path: PathBuf,
 	listeners: Vec<Addr<ZeruWebsocket>>,
@@ -55,7 +54,7 @@ impl Site {
 	pub fn download_content(&mut self, inner_path: &str) -> Result<(), Error> {
 		let buf = self.download_file(inner_path)?;
 		let content = match Content::from_buf(buf) {
-			Ok(c) => c, 
+			Ok(c) => c,
 			Err(_) => return Err(Error::MissingError),
 		};
 		// TODO: verify content
@@ -75,15 +74,19 @@ impl Site {
 		// downloading them later instead would solve the problem adequately.
 		let content = self.content.as_mut().unwrap().clone();
 		if !content.verify(self.address.to_string()) {
-			error!("Content signature {:?} is not valid for address {}!", content.signs, self.address.to_string());
-			return Err(Error::MissingError)
+			error!(
+				"Content signature {:?} is not valid for address {}!",
+				content.signs,
+				self.address.to_string()
+			);
+			return Err(Error::MissingError);
 		}
 		for (key, value) in content.files.iter() {
 			self.need_file(key); // TODO: handle result
 		}
 		Ok(())
 	}
-	// Download file 
+	// Download file
 	pub fn download_file(&mut self, inner_path: &str) -> Result<serde_bytes::ByteBuf, Error> {
 		if self.peers.len() == 0 {
 			trace!("No peers for {}", self.address.to_string());
@@ -96,7 +99,7 @@ impl Site {
 				site_address: self.address.clone(),
 			};
 			if let Ok(Ok(buf)) = block_on(peer.send(req)) {
-				return Ok(buf)
+				return Ok(buf);
 			}
 		}
 		return Err(Error::MissingError);
@@ -149,7 +152,10 @@ impl Site {
 		let mut hash_result = hex::encode(hasher.result());
 		hash_result.truncate(64);
 		if hash_result != file_content.sha512 {
-			error!("Wrong filehash: {} != {}", &hash_result, &file_content.sha512);
+			error!(
+				"Wrong filehash: {} != {}",
+				&hash_result, &file_content.sha512
+			);
 			return Err(Error::MissingError);
 		}
 		file.write_all(&buf)?;
@@ -303,9 +309,9 @@ impl Handler<ChannelJoinRequest> for Site {
 		let ws_addr = msg.ws_addr.clone();
 		if !self.listeners.contains(&ws_addr) {
 			self.listeners.push(ws_addr);
-			return Ok(true)
+			return Ok(true);
 		} else {
-			return Ok(false)
+			return Ok(false);
 		}
 	}
 }

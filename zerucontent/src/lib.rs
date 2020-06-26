@@ -11,7 +11,7 @@ pub use file::File;
 pub use content::Content;
 
 #[cfg(test)]
-#[cfg_attr(tarpaulin, skip)]
+#[cfg_attr(tarpaulin, ignore)]
 mod tests {
 	use super::*;
 

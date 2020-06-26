@@ -1,10 +1,10 @@
-use actix_web_actors::ws::WebsocketContext;
-use super::super::ZeruWebsocket;
+use super::super::error::Error;
 use super::super::request::Command;
 use super::super::response::Message;
-use super::super::error::Error;
-use log::*;
+use super::super::ZeruWebsocket;
+use actix_web_actors::ws::WebsocketContext;
 use futures::executor::block_on;
+use log::*;
 
 pub fn handle_site_info(
 	ws: &ZeruWebsocket,
@@ -34,8 +34,7 @@ pub fn handle_site_list(
 	info!("Handling SiteList");
 	// TODO: actually return list of sites
 	let sites = block_on(
-		ws
-			.site_manager
+		ws.site_manager
 			.send(crate::site::site_manager::SiteInfoListRequest {}),
 	)
 	.unwrap()

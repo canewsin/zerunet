@@ -1,11 +1,13 @@
 use super::PeerMessage;
 use crate::error::Error;
 use log::*;
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::collections::BTreeMap;
 use std::io::{Read, Write};
 use std::net::TcpStream;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
+use std::time::Duration;
 
 #[derive(Debug)]
 pub enum PeerAddress {
@@ -38,6 +40,37 @@ impl PeerAddress {
 	}
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct Handshake {
+	crypt: Option<String>,
+	crypt_supported: Vec<String>,
+	fileserver_port: usize,
+	protocol: String,
+	port_opened: bool,
+	peer_id: String,
+	rev: usize,
+	target_ip: String,
+	version: String,
+	zerunet: bool,
+}
+
+impl Default for Handshake {
+	fn default() -> Self {
+		Handshake {
+			crypt: None,
+			crypt_supported: vec![],
+			fileserver_port: 0,
+			protocol: "v2".to_string(),
+			port_opened: false,
+			peer_id: "-ZHS".to_string(),
+			rev: 0,
+			target_ip: "127.0.0.1".to_string(),
+			version: "0.7.1".to_string(),
+			zerunet: true,
+		}
+	}
+}
+
 pub struct TcpConnection {
 	socket: TcpStream,
 }
@@ -48,24 +81,32 @@ impl TcpConnection {
 		let socket = TcpStream::connect(format!("{}:{}", ip, port));
 		if socket.is_err() {
 			error!("Could not connect to {}:{}", ip, port);
-			return Err(())
+			return Err(());
 		}
 		let socket = socket.unwrap();
-		socket
-			.set_read_timeout(Some(std::time::Duration::new(1, 0)))
-			.unwrap();
+		socket.set_read_timeout(Some(Duration::new(60, 0))).unwrap();
 
-		Ok(TcpConnection { socket })
+		let mut connection = TcpConnection { socket };
+
+		let mut handshake = PeerMessage::default();
+		handshake.cmd = "handshake".to_string();
+		handshake.params = serde_json::to_value(Handshake::default()).unwrap();
+		handshake.req_id = Some(0);
+
+		connection.request(handshake);
+
+		Ok(connection)
 	}
 }
 
-impl <T: DeserializeOwned + Serialize> Connection<T> for TcpConnection {
+impl<T: DeserializeOwned + Serialize> Connection<T> for TcpConnection {
 	fn send(&mut self, msg: T) -> Result<(), Error> {
 		let bytes = rmp_serde::to_vec_named(&msg)?;
 		let json_value: serde_json::Value = rmp_serde::from_slice(&bytes).unwrap();
 		trace!("Writing {} to socket.", json_value);
+		rmp_serde::encode::write_named(&mut self.socket, &msg);
 		self.socket.write_all(&bytes)?;
-		trace!("Wrote \"{:?}\" to socket.", String::from_utf8_lossy(&bytes));
+		trace!("Wrote {:?} to socket.", String::from_utf8_lossy(&bytes));
 		Ok(())
 	}
 	fn request(&mut self, msg: T) -> Result<T, Error> {
@@ -75,11 +116,14 @@ impl <T: DeserializeOwned + Serialize> Connection<T> for TcpConnection {
 	fn recv(&mut self) -> Result<T, Error> {
 		let response: Result<T, _> = rmp_serde::from_read(&mut self.socket);
 		match response {
-			Ok(msg) => Ok(msg),
+			Ok(msg) => {
+				trace!("{:?}", json!(&msg));
+				Ok(msg)
+			}
 			Err(err) => {
 				error!("Encountered error receiving response {:?}", err);
 				Err(Error::MissingError)
-			},
+			}
 		}
 	}
 }

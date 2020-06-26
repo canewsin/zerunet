@@ -1,8 +1,8 @@
-use actix_web_actors::ws::WebsocketContext;
-use super::super::ZeruWebsocket;
+use super::super::error::Error;
 use super::super::request::Command;
 use super::super::response::Message;
-use super::super::error::Error;
+use super::super::ZeruWebsocket;
+use actix_web_actors::ws::WebsocketContext;
 use log::*;
 use std::collections::HashMap;
 

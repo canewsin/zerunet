@@ -1,12 +1,12 @@
 use super::User;
-use std::fs::File;
-use std::path::PathBuf;
+use crate::environment::Environment;
 use crate::error::Error;
-use std::collections::HashMap;
-use std::sync::mpsc::{channel, RecvError};
 use actix::{prelude::*, Actor, Addr};
 use log::*;
-use crate::environment::Environment;
+use std::collections::HashMap;
+use std::fs::File;
+use std::path::PathBuf;
+use std::sync::mpsc::{channel, RecvError};
 
 /// Starts the user manager actor in a new system thread
 /// and returns the addr for the actor if successful
@@ -43,7 +43,7 @@ impl Actor for UserManager {
 
 impl UserManager {
 	fn new(data_path: PathBuf) -> UserManager {
-		UserManager{
+		UserManager {
 			users: HashMap::new(),
 			data_path,
 		}
@@ -58,7 +58,7 @@ impl UserManager {
 		for (address, user) in users.iter_mut() {
 			user.master_address = address.clone()
 		}
-		
+
 		self.users = users;
 		info!("Loaded {} users", self.users.len());
 		// TODO: merge changes with unsaved
