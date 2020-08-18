@@ -102,6 +102,8 @@ fn serve_site(
 		);
 		return serve_wrapper(req, data);
 	}
+
+	// TODO: allow nonce to be reused for any file within same zite
 	match serve_file(&req, data) {
 		Ok(res) => match block_on(res.respond_to(&req)) {
 			Ok(r) => return r,

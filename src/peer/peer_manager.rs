@@ -1,4 +1,3 @@
-use super::connections::PeerAddress;
 use super::Peer;
 use crate::error::Error;
 use crate::site::site_manager::SiteManager;
@@ -6,6 +5,7 @@ use actix::{prelude::*, Actor, Addr};
 use log::*;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, RecvError};
+use zeronet_protocol::Address as PeerAddress;
 
 // start_peer_manager starts the peer manager actor in a new system thread
 pub fn start_peer_manager(
@@ -50,7 +50,7 @@ impl PeerManager {
 			Ok(addr.clone())
 		} else {
 			info!(
-				"Spinning up actor for peer {} with address {:?}",
+				"Spinning up actor for peer {} with address {}",
 				&peer_id, address
 			);
 			let peer = Peer::new(address);

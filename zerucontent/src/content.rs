@@ -67,6 +67,16 @@ pub struct Content {
 	other: BTreeMap<String, Value>,
 }
 
+pub fn dump<T: Serialize>(value: T) -> Result<String, serde_json::error::Error> {
+	zeruformatter::to_string_zero(
+		&sort_json(json!(value))
+			.unwrap()
+			.as_object()
+			.map(|x| x.to_owned())
+			.unwrap(),
+	)
+}
+
 impl Content {
 	pub fn from_buf(buf: serde_bytes::ByteBuf) -> Result<Content, ()> {
 		let content = match serde_json::from_slice(&buf) {
@@ -101,16 +111,15 @@ impl Content {
 			},
 		};
 		let result = zerucrypt::verify(
-			&content.dump().unwrap(),
+			content.dump().unwrap().as_bytes(),
 			&key,
 			&signature,
 		);
 		return result.is_ok()
 	}
 	pub fn sign(&self, privkey: String) -> String {
-		let content = self.cleared();
 		let result = zerucrypt::sign(
-			&content.dump().unwrap(),
+			self.dump().unwrap().as_bytes(),
 			&privkey,
 		).unwrap();
 		return result

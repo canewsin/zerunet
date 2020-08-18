@@ -93,7 +93,9 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ZeruWebsocket {
 					return;
 				}
 			}
-			ws::Message::Binary(bin) => ctx.binary(bin),
+			ws::Message::Binary(bin) => {
+				warn!("Unhandled binary data received over websocket");
+			},
 			_ => (),
 		}
 	}
@@ -193,7 +195,7 @@ fn handle_server_info(
 		plugins_rev: HashMap::new(),
 		multiuser: true, // TODO: make setting
 		master_address: String::from("TestAddress"), // TODO: get actual master address
-		// user_settings:
+		                 // user_settings:
 	};
 	req.respond(server_info)
 }

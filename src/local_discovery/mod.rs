@@ -6,9 +6,9 @@ use futures::executor::block_on;
 use log::*;
 use std::net::UdpSocket;
 
-use crate::peer::connections::PeerAddress;
 use crate::peer::peer_manager::PeerManager;
 use crate::site::site_manager::SiteManager;
+use zeronet_protocol::Address as PeerAddress;
 
 use error::Error;
 use message::*;
@@ -230,7 +230,8 @@ impl LocalDiscoveryServer {
 		self
 			.peer_manager
 			.do_send(crate::peer::peer_manager::UpdatePeer {
-				address: PeerAddress::IPV4(msg.sender.ip.clone(), msg.sender.port),
+				address: PeerAddress::parse(format!("{}:{}", msg.sender.ip.clone(), msg.sender.port))
+					.unwrap(),
 				peer_id: msg.sender.peer_id.clone(),
 				sites: msg.params.sites.iter().map(|a| a.to_vec()).collect(),
 			});

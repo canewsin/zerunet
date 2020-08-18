@@ -60,4 +60,11 @@ impl From<actix::MailboxError> for Error {
 	}
 }
 
+impl From<zeronet_protocol::Error> for Error {
+	fn from(error: zeronet_protocol::Error) -> Error {
+		println!("{:?}", error);
+		Error::MissingError
+	}
+}
+
 impl ResponseError for Error {}

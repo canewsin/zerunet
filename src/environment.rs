@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 const TRACKERS: &[&str] = &[
-	"zero://127.0.0.1:8001",
+	"zero://127.0.0.1:15442",
 	"zero://38.39.233.117:15441",
 	"zero://125.123.63.229:26552",
 	"zero://149.248.37.249:13601",

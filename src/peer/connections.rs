@@ -5,7 +5,7 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::BTreeMap;
-use std::io::{Read, Write};
+use std::io::Write;
 use std::net::TcpStream;
 use std::time::Duration;
 

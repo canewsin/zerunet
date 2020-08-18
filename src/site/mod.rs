@@ -188,16 +188,16 @@ impl Actor for Site {
 pub struct SiteInfoRequest {}
 
 impl Message for SiteInfoRequest {
-	type Result = Result<SiteInfo, ()>;
+	type Result = Result<SiteInfo, Error>;
 }
 
 impl Handler<SiteInfoRequest> for Site {
-	type Result = Result<SiteInfo, ()>;
+	type Result = Result<SiteInfo, Error>;
 
 	fn handle(&mut self, msg: SiteInfoRequest, ctx: &mut Context<Self>) -> Self::Result {
 		// TODO: replace default values
 		if self.content.is_none() {
-			self.download_content("content.json");
+			self.download_content("content.json")?;
 		}
 		Ok(SiteInfo {
 			tasks: self.queued_files.len(),

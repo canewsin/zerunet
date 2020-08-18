@@ -62,6 +62,12 @@ fn main() {
 	let site_manager_addr = start_site_manager(&env).unwrap();
 	let user_manager_addr = start_user_manager(&env).unwrap();
 	let peer_manager_addr = start_peer_manager(site_manager_addr.clone()).unwrap();
+	// TODO: Spawn tracker manager in thread
+	// let tracker_manager_addr = start_tracker_manager(&env).unwrap();
+	let mut tracker_manager = crate::tracker::TrackerManager::new();
+	for tracker in &env.trackers {
+		tracker_manager.add_tracker(&tracker);
+	}
 
 	let db = content_manager::ContentManager::new("./data/content.db");
 
@@ -75,13 +81,14 @@ fn main() {
 	info!("Loaded {} sites from database", sites.len());
 	for site in sites {
 		if let Ok(address) = crate::site::address::Address::from_str(&site.address) {
+			tracker_manager.announce(&address);
 			addresses.push(address.get_address_hash());
 			site_manager_addr.do_send(crate::site::site_manager::Lookup::Address(address));
 		}
 	}
 	let message = peer::peer_manager::UpdatePeer {
 		sites: addresses,
-		address: peer::connections::PeerAddress::IPV4(String::from("localhost"), 11692),
+		address: zeronet_protocol::Address::parse(format!("{}:{}", "127.0.0.1", 11692)).unwrap(),
 		peer_id: String::from("-UT3530-RB5sGEcwouRReZgY"),
 	};
 	peer_manager_addr.do_send(message);
@@ -150,7 +157,7 @@ fn main() {
 		}
 	};
 
-	match zerucrypt::verify(&test_content.dump().unwrap(), &key, value) {
+	match zerucrypt::verify(test_content.dump().unwrap().as_bytes(), &key, value) {
 		Ok(_) => info!("Signature valid!"),
 		Err(_) => error!("Signature mismatch!"),
 	}

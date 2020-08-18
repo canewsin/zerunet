@@ -1,71 +1,73 @@
 use super::Announcer;
-use crate::peer::connections::PeerAddress;
+use crate::error::Error;
 use crate::peer::Peer;
 use crate::site::address::Address;
 use crate::util::is_default;
+use actix::prelude::*;
+use futures::executor::block_on;
 use log::*;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
 use std::time::SystemTime;
+use zeronet_protocol::templates;
+use zeronet_protocol::Address as PeerAddress;
+
+pub struct Announce {
+	pub req: templates::Announce,
+}
+
+impl Message for Announce {
+	type Result = Result<templates::AnnounceResponse, Error>;
+}
 
 pub struct ZeroAnnouncer {
-	peer: Peer,
+	peer: Addr<Peer>,
 }
 
 impl ZeroAnnouncer {
 	pub fn new(tracker: super::Tracker) -> ZeroAnnouncer {
-		ZeroAnnouncer {
-			peer: Peer::new(PeerAddress::IPV4(tracker.address, tracker.port)),
-		}
+		let peer =
+			Peer::new(PeerAddress::parse(format!("{}:{}", tracker.address, tracker.port)).unwrap());
+		let (tx, rx) = std::sync::mpsc::channel();
+		std::thread::spawn(move || {
+			actix::System::run(move || {
+				let addr = peer.start();
+				tx.send(addr);
+			});
+		});
+		let addr = rx.recv().unwrap();
+		ZeroAnnouncer { peer: addr }
 	}
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Announce {
-	// #[serde(default, skip_serializing_if = "is_default")]
-	hashes: Vec<serde_bytes::ByteBuf>,
-	#[serde(default, skip_serializing_if = "is_default")]
-	onions: Vec<String>,
-	#[serde(default, skip_serializing_if = "is_default")]
-	port: i64,
-	#[serde(default, skip_serializing_if = "is_default")]
-	need_types: Vec<String>,
-	#[serde(default, skip_serializing_if = "is_default")]
-	need_num: i64,
-	#[serde(default, skip_serializing_if = "is_default")]
-	add: Vec<String>,
-	#[serde(default, skip_serializing_if = "is_default")]
-	delete: bool,
+fn site_announce(addr: &Address) -> Announce {
+	let req = templates::Announce {
+		port: 11692,
+		add: vec!["ipv4".to_string()],
+		need_types: vec!["ipv4".to_string(), "ipv6".to_string()],
+		need_num: 20,
+		hashes: vec![serde_bytes::ByteBuf::from(addr.get_address_hash())],
+		onions: vec![],
+		onion_signs: vec![],
+		onion_sign_this: String::new(),
+		delete: false,
+	};
+	Announce { req }
 }
-
-impl Announce {
-	fn site(addr: &Address) -> Announce {
-		Announce {
-			hashes: vec![serde_bytes::ByteBuf::from(addr.get_address_hash())],
-			// hashes: vec![],
-			onions: vec![],
-			port: 11692,
-			need_types: vec!["ip4", "ipv4", "ipv6"]
-				.iter()
-				.map(|s| s.to_string())
-				.collect(),
-			need_num: 20,
-			add: vec!["ip4".to_string()],
-			delete: false,
-		}
-	}
-	fn full() -> Announce {
-		Announce {
-			hashes: vec![],
-			onions: vec![],
-			port: 0,
-			need_types: vec![],
-			need_num: 20,
-			add: vec![],
-			delete: true,
-		}
-	}
+fn full_announce() -> Announce {
+	let req = templates::Announce {
+		port: 0,
+		add: vec![],
+		need_types: vec![],
+		need_num: 20,
+		hashes: vec![],
+		onions: vec![],
+		onion_signs: vec![],
+		onion_sign_this: String::new(),
+		delete: true,
+	};
+	Announce { req }
 }
 
 impl Announcer for ZeroAnnouncer {
@@ -82,15 +84,17 @@ impl Announcer for ZeroAnnouncer {
 		 * - delete = true if full announce
 			**/
 
-		let request = Announce::site(address);
+		let request = site_announce(address);
 		// let request = Announce::full();
 		// let mut request = HashMap::new();
 		// let hash = serde_bytes::ByteBuf::from(address.get_address_hash());
 		// request.insert("hashes", json!(hash));
 
-		let res = self.peer.request("announce", json!(request));
-		trace!("Announce: {:?}", res);
-		trace!("Announced in {:?}", start_time.elapsed().unwrap());
+		// let res = block_on(conn.request("announce", json!(request)));
+
+		trace!("Sending AnnounceRequest...");
+		let res = block_on(self.peer.send(request));
+		trace!("Received announce response: {:?}", res);
 		Err(())
 	}
 }

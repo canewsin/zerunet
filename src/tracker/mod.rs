@@ -1,12 +1,37 @@
+use crate::environment::Environment;
 use crate::site::address::Address;
 use log::*;
 use serde::{Deserialize, Serialize};
 
 mod bittorrent_announcer;
-mod zero_announcer;
+pub mod zero_announcer;
 
 use bittorrent_announcer::BittorrentAnnouncer;
 use zero_announcer::ZeroAnnouncer;
+
+// pub fn start_tracker_manager(
+// 	env: &Environment,
+// 	// site_manager_addr: Addr<TrackerManager>,
+// ) -> Result<Addr<TrackerManager>, RecvError> {
+// 	info!("Starting tracker manager");
+
+// 	let (sender, receiver) = channel();
+// 	std::thread::spawn(move || {
+// 		let tracker_manager = TrackerManager::new();
+// 		for tracker in &env.trackers {
+// 			tracker_manager.add_tracker(&tracker);
+// 		}
+// 		let tracker_manager_system = System::new("Tracker manager");
+// 		let tracker_manager_addr = tracker_manager.start();
+// 		if sender.send(tracker_manager_addr).is_err() {
+// 			error!("Error sending tracker manager address to main thread");
+// 		}
+// 		if tracker_manager_system.run().is_err() {
+// 			error!("Tracker Manager Actix System encountered an error");
+// 		}
+// 	});
+// 	receiver.recv()
+// }
 
 pub trait Announcer {
 	fn announce(&mut self, site: &Address) -> Result<(), ()>;

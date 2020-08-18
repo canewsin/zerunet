@@ -25,7 +25,6 @@ pub fn formatted_builder() -> Builder {
 	let mut builder = Builder::new();
 
 	builder.format(|f, record| {
-    use std::io::Write;
     let target = record.target();
     let level = record.level();
     let client = reqwest::Client::new();
