@@ -221,7 +221,7 @@ impl Handler<SiteInfoListRequest> for SiteManager {
 				)
 			});
 		let wrapped = actix::fut::wrap_future::<_, Self>(request);
-		Box::new(wrapped)
+		Box::pin(wrapped)
 	}
 }
 
